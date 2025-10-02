@@ -20,13 +20,38 @@ INPUT_MAP = {
     "BTN_MODE": "Home"
 }
 
+TRIGGER_THRESHOLD = 70
+STICK_THRESHOLD = 8000
+
+def threshold_detection(btn_name, state):
+    detected = False
+
+    detected |= btn_name.startswith("R") and int(state) > TRIGGER_THRESHOLD # Triggers
+
+    detected |= btn_name.startswith("Dpad") and int(state) == 1 # Dpad            
+    
+    if "S" in btn_name and abs(int(state)) > STICK_THRESHOLD:
+        detected = True
+        direction = btn_name[-1]
+        btn_name = btn_name[:1]
+        if int(state) > 0: 
+            if direction == "X": btn_name += "Right"
+            else: btn_name += "Up"
+        else: 
+            if direction == "X": btn_name += "Left"
+            else: btn_name += "Down"
+
+    if detected:
+        return btn_name
+    else:
+        return None
+
 def init_controller():
     if not devices.gamepads:
        print("No gamepad detected")
        exit(1)
     print(f"Gamepad detected: {devices.gamepads}")
 
-# TODO: Threshold ABS buttons (sticks and trigers(LT, RT)) and Dpads
 def get_input():
     cur_pressed = set()
 
@@ -48,6 +73,8 @@ def get_input():
                     cur_pressed.discard(btn_name)
 
             elif code.startswith("ABS_"):
-                cur_pressed.add(f"{btn_name}:{state}")
+                btn_name = threshold_detection(btn_name, state)
+                if btn_name:
+                    cur_pressed.add(btn_name)
         
-            print("Currently pressed:", cur_pressed)
+            return cur_pressed

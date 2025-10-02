@@ -3,15 +3,36 @@ from .config import SAVE_FOLDER, COUNTDOWN_TIME, RESET_PAUSE, TRIAL
 from .utils import get_remaining_samples, save_progress, close_camera, show_frame_with_text, wait_for_key, handle_keypress
 from .controller import init_controller, get_input
 
+# TODO: Save frame is repeated code
+# TODO: TESTING LAST COMMIT
+
 def input_collector(cam):
     init_controller()
 
-    get_input()
+    counters = {}
+
+    def show_video(): 
+        if not show_frame_with_text(cam, "", color=(0, 0, 0)):
+            print("Error showing")
+            exit(1)
+
+    def save_frame(label_text):
+        ret, frame = cam.read()
+        if ret:
+            filename = os.path.join(f"{SAVE_FOLDER}/{TRIAL}", f"{label_text}_{counters[label_text]}.png")
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
+            cv2.imwrite(filename, frame)
+            print(f"Saved {filename}")
+            counters[label_text] += 1
+
+    # TODO: Set condition for stopping, for now its only until I press 'q'
+    while True: 
+        get_input(waiting_fn=show_video, action_fn=save_frame)
 
 def timed_collector(cam):
+    # TODO: Delete progress by skipping saved progress
     remaining, counters = get_remaining_samples()
 
-    print("Press 'q' to quit, 'p' to pause and save progress.")
     # While there are stil remaining examples to add
     while remaining:
         combo = remaining[0]
@@ -67,11 +88,15 @@ def run_collector(connected):
         if action == "start":
             print("Starting...")
             break
+    
+    print("Press 'q' to quit, 'p' to pause and save progress.")
 
     if connected:
         input_collector(cam)
     else:
         timed_collector(cam)
+    
+    # TODO: Delete progress after completing
 
     print("Dataset collection complete")
     close_camera(cam)

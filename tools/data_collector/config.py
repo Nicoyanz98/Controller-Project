@@ -22,7 +22,7 @@ rs = ["RS_Up", "RS_Down", "RS_Left", "RS_Right"]
 bumpers = ["LB", "RB"]
 triggers = ["LT", "RT"]
 stick_buttons = ["L3", "R3"]
-system = ["Start", "Select"]
+system = ["Start", "Select", "Home"]
 idle = ["Idle"]
 
 all_buttons = face_buttons + dpad + ls + rs + bumpers + triggers + stick_buttons + system
