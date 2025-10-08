@@ -19,7 +19,13 @@ def generate_combinations():
     return multi
 
 def generate_samples():
-    single = [[b] for b in all_buttons]
+    single = [[b] for b in ALL_BUTTONS]
     multi = generate_combinations()
-    samples = (single + [idle]) * MIN_SAMPLES_PER_BUTTON + (multi + [idle]) * MIN_SAMPLES_PER_COMBO
-    return samples
+    return single+multi
+
+def update_remaining(remaining, counters):
+    for b, count in counters.items():
+        if b in remaining:
+            if (len(b) == 1 and count >= MIN_SAMPLES_PER_BUTTON) or (len(b) > 1 and count >= MIN_SAMPLES_PER_COMBO):
+                remaining.remove(b)
+    return remaining

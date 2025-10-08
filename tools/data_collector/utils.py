@@ -1,31 +1,34 @@
 import os
 import pickle
 import cv2
-from .config import SAVE_STATE_FILE, COUNTER_FILE
+from .config import COUNTER_FILE, SAVE_FOLDER
 from .samples import generate_samples
 
+trial = 0
+
 def load_progress():
-    with open(SAVE_STATE_FILE, 'rb') as f:
-        samples = pickle.load(f)
     with open(COUNTER_FILE, 'rb') as f:
         counters = pickle.load(f)
-    print(f"Loaded {len(samples)} remaining samples.")
-    return samples, counters
+    print(f"Loaded counters.")
+    return counters
 
 
-def get_remaining_samples():
-    if os.path.exists(SAVE_STATE_FILE) and os.path.exists(COUNTER_FILE):
+def get_counters(combinations):
+    if os.path.exists(COUNTER_FILE):
         choice = input(f"Saved session found. Continue? (y/n): ").lower()
         if choice == 'y':
             return load_progress()
         
-    TRIAL = input("Write new trial number to avoid overwritting existing examples: ")
-    return generate_samples(), {}
+    trial = input("Write new trial number to avoid overwritting existing examples: ")
 
-def save_progress(remaining, counters):
-    os.makedirs(os.path.dirname(SAVE_STATE_FILE), exist_ok=True)
-    with open(SAVE_STATE_FILE, 'wb') as f:
-        pickle.dump(remaining, f)
+    counters = {}
+    for b in combinations:
+        key = "+".join(b)
+        counters[key] = 0
+
+    return counters
+
+def save_progress(counters):
     os.makedirs(os.path.dirname(COUNTER_FILE), exist_ok=True)
     with open(COUNTER_FILE, 'wb') as f:
         pickle.dump(counters, f)
@@ -40,16 +43,22 @@ def show_frame_with_text(cap, text, color=(0, 255, 255)):
     return True
 
 
+def save_image(label_text, counters, frame):
+    filename = os.path.join(f"{SAVE_FOLDER}/{trial}", f"{label_text}_{counters[label_text]}.png")
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    cv2.imwrite(filename, frame)
+    print(f"Saved {filename}")
+
 def wait_for_key(delay=1):
     return chr(cv2.waitKey(delay) & 0xFF).lower()
 
 
-def handle_keypress(key, cap, remaining=None, counters=None, save_fn=None):
+def handle_keypress(key, cap, counters=None, save_fn=None):
     if key == 'q':
         close_camera(cap)
         return "quit"
-    if key == 'p' and save_fn and remaining and counters:
-        save_fn(remaining, counters)
+    if key == 'p' and save_fn and counters:
+        save_fn(counters)
         print("Progress saved. You can continue later.")
         close_camera(cap)
         return "pause"

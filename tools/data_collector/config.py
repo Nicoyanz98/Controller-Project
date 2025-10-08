@@ -5,7 +5,6 @@ SAVE_FOLDER = "./dataset"
 os.makedirs(SAVE_FOLDER, exist_ok=True)
 
 # File names for saving state
-SAVE_STATE_FILE = os.path.join(SAVE_FOLDER, "state/remaining_samples.pkl")
 COUNTER_FILE = os.path.join(SAVE_FOLDER, "state/counters.pkl")
 
 # PARAMETERS (time measured in seconds)
@@ -25,6 +24,4 @@ stick_buttons = ["L3", "R3"]
 system = ["Start", "Select", "Home"]
 idle = ["Idle"]
 
-all_buttons = face_buttons + dpad + ls + rs + bumpers + triggers + stick_buttons + system
-
-TRIAL = 0
+ALL_BUTTONS = face_buttons + dpad + ls + rs + bumpers + triggers + stick_buttons + system
