@@ -10,7 +10,7 @@ COUNTER_FILE = os.path.join(SAVE_FOLDER, "state/counters.pkl")
 # PARAMETERS (time measured in seconds)
 MIN_SAMPLES_PER_BUTTON = 10
 MIN_SAMPLES_PER_COMBO = int(.5 * MIN_SAMPLES_PER_BUTTON)
-COUNTDOWN_TIME = 6
+COUNTDOWN_TIME = 5
 RESET_PAUSE = 1
 
 # Types of buttons

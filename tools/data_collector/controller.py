@@ -3,8 +3,8 @@ from inputs import devices, get_gamepad
 INPUT_MAP = {
     "BTN_SOUTH": "A",
     "BTN_EAST": "B",
-    "BTN_NORTH": "Y",
-    "BTN_WEST": "X",
+    "BTN_NORTH": "X",
+    "BTN_WEST": "Y",
     "BTN_TL": "LB",
     "BTN_TR": "RB",
     "ABS_Z": "LT",
@@ -67,8 +67,8 @@ def get_input(waiting_fn, action_fn):
     last_pressed = set()
 
     while True:
-        waiting_fn()
         events = get_gamepad()
+        waiting_fn()
         for event in events:
             code = event.code
             state = event.state

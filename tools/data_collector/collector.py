@@ -23,8 +23,10 @@ def input_collector(cam):
             close_camera(cam)
             exit(0)
 
-    def save_frame(pressed):            
+    def save_frame(pressed):
         label_text = "+".join(pressed)
+        for i in range(COUNTDOWN_TIME*3, 0, -1):
+            show_video()
         ret, frame = cam.read()
         if ret:
             save_image(label_text, counters, frame)
