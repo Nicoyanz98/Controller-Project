@@ -10,7 +10,7 @@ from .samples import generate_samples, update_remaining
 def input_collector(cam):
     init_controller()
 
-    counters = get_counters(generate_samples())
+    counters, trial = get_counters(generate_samples())
 
     def show_video(): 
         if not show_frame_with_text(cam, "", color=(0, 0, 0)):
@@ -29,7 +29,7 @@ def input_collector(cam):
             show_video()
         ret, frame = cam.read()
         if ret:
-            save_image(label_text, counters, frame)
+            save_image(label_text, counters, frame, trial)
             counters[label_text] += 1
             
 

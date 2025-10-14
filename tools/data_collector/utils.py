@@ -4,8 +4,6 @@ import cv2
 from .config import COUNTER_FILE, SAVE_FOLDER
 from .samples import generate_samples
 
-trial = 0
-
 def load_progress():
     with open(COUNTER_FILE, 'rb') as f:
         counters = pickle.load(f)
@@ -26,7 +24,7 @@ def get_counters(combinations):
         key = "+".join(b)
         counters[key] = 0
 
-    return counters
+    return counters, trial
 
 def save_progress(counters):
     os.makedirs(os.path.dirname(COUNTER_FILE), exist_ok=True)
@@ -43,7 +41,7 @@ def show_frame_with_text(cap, text, color=(0, 255, 255)):
     return True
 
 
-def save_image(label_text, counters, frame):
+def save_image(label_text, counters, frame, trial):
     filename = os.path.join(f"{SAVE_FOLDER}/{trial}", f"{label_text}_{counters[label_text]}.png")
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     cv2.imwrite(filename, frame)
