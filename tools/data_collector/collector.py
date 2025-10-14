@@ -23,9 +23,8 @@ def input_collector(cam):
             close_camera(cam)
             exit(0)
 
-    def save_frame(pressed):
+    def save_frame(pressed):            
         label_text = "+".join(pressed)
-        print(label_text)
         ret, frame = cam.read()
         if ret:
             save_image(label_text, counters, frame)

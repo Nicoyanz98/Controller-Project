@@ -69,14 +69,9 @@ def get_input(waiting_fn, action_fn):
     while True:
         waiting_fn()
         events = get_gamepad()
-        latest = {}
-        for e in events:
-            print(e)
-            if e.code != "SYN_REPORT":
-                latest[e.code] = e.state
-
-        for code, state in latest.items():
-            last_pressed = cur_pressed
+        for event in events:
+            code = event.code
+            state = event.state
 
             if code == "SYN_REPORT":
                 continue
@@ -96,6 +91,10 @@ def get_input(waiting_fn, action_fn):
                 else:
                     cur_pressed.discard(btn_name)
         
-            if (cur_pressed != last_pressed and len(cur_pressed) > 1):
+            if len(cur_pressed) > 0:
+                last_pressed = cur_pressed
+                if ("Dpad_Down" in cur_pressed and "Dpad_Up" in cur_pressed) or ("Dpad_Left" in cur_pressed and "Dpad_Right" in cur_pressed):
+                    cur_pressed = set()
+                    continue
                 print(cur_pressed)
-                # action_fn(cur_pressed)
+                action_fn(cur_pressed)
