@@ -40,7 +40,7 @@ def input_collector(cam):
 def timed_collector(cam):
     # TODO: Delete progress by skipping saved progress
     remaining = generate_samples()
-    counters = get_counters(remaining)
+    counters, trial = get_counters(remaining)
 
     # While there are stil remaining examples to add
     while remaining:
@@ -63,7 +63,7 @@ def timed_collector(cam):
 
         ret, frame = cam.read()
         if ret:
-            save_image(label_text, counters, frame)
+            save_image(label_text, counters, frame, trial)
             counters[label_text] += 1
         
         update_remaining(remaining, counters)
