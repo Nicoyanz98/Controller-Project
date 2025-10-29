@@ -14,12 +14,11 @@ class Frame_Annotator:
         
         self.prev_time = 0
         
-        self.distance = 0
-        self.measure = False
-        self.prev_pos = None
+        self.distance = (0, 0)
+        self.movement = False
+        self.start_pos = None
 
-        self.distance_display_start = 0
-        self.saved_distance = None
+        self.last_move = None
     
     def update_frame(self, frame):
         self.frame = frame
@@ -36,24 +35,27 @@ class Frame_Annotator:
         
         self.prev_time = cur_time
 
+    def _draw_hand_keypoints(self, hand_landmark):
+        hand_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
+        hand_landmarks_proto.landmark.extend([
+            landmark_pb2.NormalizedLandmark(x=landmark.x, y=landmark.y, z=landmark.z) for landmark in hand_landmark
+        ])
+
+        mp.solutions.drawing_utils.draw_landmarks(
+            self.annotated_frame,
+            hand_landmarks_proto,
+            mp.solutions.hands.HAND_CONNECTIONS,
+            mp.solutions.drawing_styles.get_default_hand_landmarks_style(),
+            mp.solutions.drawing_styles.get_default_hand_connections_style()
+        )
+
     def draw_keypoints_on_image(self, detection_result: vision.GestureRecognizerResult):
         try:
             top_gesture = detection_result.gestures[0][0]
             hand_landmarks = detection_result.hand_landmarks
 
             for hand_landmark in hand_landmarks:
-                hand_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
-                hand_landmarks_proto.landmark.extend([
-                    landmark_pb2.NormalizedLandmark(x=landmark.x, y=landmark.y, z=landmark.z) for landmark in hand_landmark
-                ])
-
-                mp.solutions.drawing_utils.draw_landmarks(
-                    self.annotated_frame,
-                    hand_landmarks_proto,
-                    mp.solutions.hands.HAND_CONNECTIONS,
-                    mp.solutions.drawing_styles.get_default_hand_landmarks_style(),
-                    mp.solutions.drawing_styles.get_default_hand_connections_style()
-                )
+                self._draw_hand_keypoints(hand_landmark)
             
             title = f"{top_gesture.category_name} ({top_gesture.score:.2f})"
             height, width, _ = self.frame.shape
@@ -63,39 +65,43 @@ class Frame_Annotator:
             cv2.putText(self.annotated_frame, title, (text_x, text_y), cv2.FONT_HERSHEY_DUPLEX, 1, (0,0,255), 2, cv2.LINE_4)
 
             if top_gesture.category_name == "Pointing_Up":
-                self._calculate_distance(hand_landmark[8])
-                self.measure = True
-            
-            if top_gesture.category_name == "Closed_Fist" and self.measure:
-                self.saved_distance = self.distance
-
-                self.measure = False
-                self.distance = 0
-                self.prev_pos = None
+                self._draw_movement(hand_landmark[8])
+            else:
+                self.movement = False
+                self.distance = (0, 0)
         except:
+            self.movement = False
+            self.distance = (0, 0)
             pass
 
-    def _calculate_distance(self, fingertip_landmark):
+    def _draw_movement(self, fingertip_landmark):
         height, width, _ = self.frame.shape
         x = int(fingertip_landmark.x * width)
         y = int(fingertip_landmark.y * height)
 
-        if self.prev_pos:
-            dx = x - self.prev_pos[0]
-            dy = y - self.prev_pos[1]
-            self.distance += math.sqrt(dx*dx + dy*dy)
-        self.prev_pos = (x, y)
-
-    def show_distance(self, last_distance):
-        if self.saved_distance:
-            if last_distance != self.saved_distance:
-                self.distance_display_start = time.time()
-            
-            elapsed_time = time.time() - self.distance_display_start
-            
-            if elapsed_time < 5:
-                cv2.putText(self.annotated_frame, f"{self.saved_distance:.2f}px", (50, 50), cv2.FONT_HERSHEY_DUPLEX, 1, (0,255,255), 2, cv2.LINE_4)
-            else:
-                self.saved_distance = None
+        if self.movement:
+            self.distance = (x - self.start_pos[0], y - self.start_pos[1])
+        else:
+            self.movement = True
+            self.start_pos = (x, y)
+            self.distance = (0, 0)
         
-        return self.saved_distance
+        cv2.circle(self.annotated_frame, self.start_pos, 7, (255,0,255), 2)
+        cv2.arrowedLine(self.annotated_frame, self.start_pos, (x, y), (255,0,255), 2)
+
+    def show_movement(self, threshold=0):
+        if self.movement:
+            cv2.circle(self.annotated_frame, self.start_pos, threshold, (255,0,255), 2)
+        moves = []
+        if abs(self.distance[1]) > threshold:
+            if self.distance[1] > 0:
+                moves += ["Down"]
+            else:
+                moves += ["Up"]
+        if abs(self.distance[0]) > threshold:
+            if self.distance[0] > 0:
+                moves += ["Right"]
+            else:
+                moves += ["Left"]
+        if moves:
+            cv2.putText(self.annotated_frame, f"{' '.join(moves)}", (50, 50), cv2.FONT_HERSHEY_DUPLEX, 1, (0,255,255), 2, cv2.LINE_4)

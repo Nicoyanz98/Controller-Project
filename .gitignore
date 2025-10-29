@@ -1,4 +1,4 @@
 tools/dataset
-tools/data_collector/__pycache__
 dataset
 venv/*
+**/__pycache__

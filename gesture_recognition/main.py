@@ -1,10 +1,4 @@
-import mediapipe as mp
-from mediapipe.tasks.python import vision
-from mediapipe.framework.formats import landmark_pb2
-
 import cv2
-
-import time, math
 
 from handposeRecognizer import Handpose_Recognizer
 from frameAnnotator import Frame_Annotator
@@ -19,7 +13,6 @@ if not cam.isOpened():
     exit(1)
 
 previous_time = 0
-last_distance = None
 
 # Create a loop to read the latest frame from the camera using VideoCapture#read()
 while cam.isOpened():
@@ -34,7 +27,7 @@ while cam.isOpened():
     gesture_recognizer.recognize_async(frame)
     annotator.draw_keypoints_on_image(gesture_recognizer.result)
 
-    last_distance = annotator.show_distance(last_distance)
+    annotator.show_movement(threshold=50) # pixeles
 
     cv2.imshow("Webcam", annotator.annotated_frame)
 
