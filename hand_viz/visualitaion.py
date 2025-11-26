@@ -14,8 +14,6 @@ class YOLODetector:
         self.target_fps = 30  
         self.frame_time = 1.0 / self.target_fps
 
-
-
     def camera_thread(self):
         cap = cv2.VideoCapture(0)
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
@@ -37,8 +35,6 @@ class YOLODetector:
                 last_capture_time = current_time
             else:
                 time.sleep(0.001) #Permite que no consuma todo el nucleo
-
-            
         cap.release()
 
     def detection_thread(self):
@@ -54,11 +50,13 @@ class YOLODetector:
                         frame_copy = self.current_frame.copy() #Tomamos una copia para trabajar con el
                     
                     # Procesar detección
-                    results = self.model.predict(
+                    results = self.model.track(
                         frame_copy, 
                         imgsz=320, 
                         conf=0.5, 
-                        verbose=False
+                        verbose=False,
+                        persist=True,
+                        tracker="bytetracker.yaml"
                     )
                     
                     # Actualizar resultados
@@ -81,6 +79,7 @@ class YOLODetector:
         det_thread.start()
         
         fps_count = 0
+        fps = 0
         fps_time = time.time()
         last_display_time = time.time()
         
@@ -119,10 +118,6 @@ class YOLODetector:
                         fps_time = current_time
                     
                     cv2.putText(display_frame, f"FPS: {fps}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-
-            
-
-
 
                     cv2.imshow("Detector de joystick", display_frame)
 
