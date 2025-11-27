@@ -1,7 +1,10 @@
 from ultralytics import YOLO
+from ultralytics.engine.results import Results, Boxes
 import cv2
 import threading
 import time
+import numpy as np
+import torch
 
 
 class YOLODetector:
@@ -13,6 +16,7 @@ class YOLODetector:
         self.lock = threading.Lock()
         self.target_fps = 30  
         self.frame_time = 1.0 / self.target_fps
+        self.stride = 3
 
     def camera_thread(self):
         cap = cv2.VideoCapture(0)
@@ -37,8 +41,27 @@ class YOLODetector:
                 time.sleep(0.001) #Permite que no consuma todo el nucleo
         cap.release()
 
+    # Tracking without inference
+    def interpolate(self, frame, path):
+        tracker = self.model.predictor.trackers[0]
+        tracks = [t for t in tracker.tracked_stracks if t.is_activated]
+        # Apply Kalman Filter to get predicted locations
+        tracker.multi_predict(tracks)
+        tracker.frame_id += 1
+        
+        boxes = np.array([np.hstack([t.xyxy, t.track_id, t.score, t.cls]) for t in tracks])
+        tensor = torch.from_numpy(boxes)
+        
+        # Update frame_id in tracks
+        for t in tracks:
+            t.frame_id = tracker.frame_id
+        
+        return Results(frame, path, self.model.names, boxes=tensor)
+
     def detection_thread(self):
         last_detection_time = time.time()
+        frames = 0
+        results = []
 
         while self.running:
             current_time = time.time()
@@ -48,24 +71,27 @@ class YOLODetector:
                 if self.current_frame is not None:
                     with self.lock:
                         frame_copy = self.current_frame.copy() #Tomamos una copia para trabajar con el
-                    
-                    # Procesar detección
-                    results = self.model.track(
-                        frame_copy, 
-                        imgsz=320, 
-                        conf=0.5, 
-                        verbose=False,
-                        persist=True,
-                        tracker="bytetracker.yaml"
-                    )
+
+                    if frames == 0:
+                        # Procesar detección
+                        results = self.model.track(
+                            frame_copy, 
+                            imgsz=320, 
+                            conf=0.5, 
+                            verbose=False,
+                            persist=True,
+                            tracker="bytetracker.yaml"
+                        )
+                    elif len(results) > 1:
+                        results = self.interpolate(frame_copy, results[0].path)
                     
                     # Actualizar resultados
                     with self.lock:
                         self.current_results = results[0]
                     last_detection_time = current_time
+                    frames = (frames + 1) % (self.stride + 1)
             else:
-                time.sleep(0.01) 
-
+                time.sleep(0.01)
 
     def run(self):
         #incializamos hilos
