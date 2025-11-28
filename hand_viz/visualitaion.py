@@ -18,6 +18,10 @@ class YOLODetector:
         self.frame_time = 1.0 / self.target_fps
         self.tracker = None
         self.tracks = []
+        self.MAX_STRIDE = 5
+        self.MOTION_THRESH = 50
+        self.AREA_THRESH = 1.1
+        self.COV_INCREASE = 1.1
 
     def camera_thread(self):
         cap = cv2.VideoCapture(0)
@@ -53,18 +57,45 @@ class YOLODetector:
         self.tracker.multi_predict(self.tracks)
         self.tracker.frame_id += 1
         
-        boxes = np.array([np.hstack([t.xyxy, t.track_id, t.score, t.cls]) for t in self.tracks])
+        boxes = np.array([np.hstack([np.array(t.xyxy).reshape(-1), t.track_id, t.score, t.cls]) for t in self.tracks])
         tensor = torch.from_numpy(boxes)
         
         # Update frame_id in tracks
         for t in self.tracks:
             t.frame_id = self.tracker.frame_id
         
+        if len(self.tracks) == 0:
+            tensor = torch.zeros((0,6))
         return Results(frame, path, self.model.names, boxes=tensor)
+
+    def is_stable(self, prev_boxes, curr_boxes, prev_tracks):
+        if len(curr_boxes) == 0 or len(prev_boxes) != len(curr_boxes):
+            return False
+    
+        if len(prev_tracks) == 0 or len(prev_tracks) != len(self.tracks):
+            return False
+        
+        for prev, curr, prev_t, curr_t in zip(prev_boxes, curr_boxes, prev_tracks, self.tracks):
+            # 1. motion constraint
+            motion = np.linalg.norm(curr[:2] - prev[:2])
+            if motion > self.MOTION_THRESH:
+                return False
+
+            # 2. area stability
+            prev_area = (prev[2]-prev[0])*(prev[3]-prev[1])
+            curr_area = (curr[2]-curr[0])*(curr[3]-curr[1])
+            if curr_area > prev_area * self.AREA_THRESH or curr_area < prev_area / self.AREA_THRESH:
+                return False
+
+            # 3. covariance trace
+            if np.trace(curr_t.covariance) > np.trace(prev_t.covariance) * self.COV_INCREASE:
+                return False
+
+        return True
 
     def detection_thread(self):
         last_detection_time = time.time()
-        frames = 0
+        frames_since_detection = 0
         results = []
         is_trackable = False
 
@@ -77,13 +108,16 @@ class YOLODetector:
                     with self.lock:
                         frame_copy = self.current_frame.copy() #Tomamos una copia para trabajar con el
 
-                    print("detect")
-                    print("1" + str(is_trackable))
-                    if is_trackable:
-                        results = self.interpolate(frame_copy, results[0].path)
-                        is_trackable = (results[0].boxes.conf <= 0.7).any()
-                            
-                        print("2" + str(is_trackable))
+                    if is_trackable and results is not None:
+                        prev_boxes = results.boxes.xyxy.numpy()
+                        prev_tracks = self.tracks
+                        results = self.interpolate(frame_copy, results.path)
+                        stable = self.is_stable(prev_boxes, results.boxes.xyxy.numpy(), prev_tracks)
+                        # print(stable)
+                        if stable and frames_since_detection < self.MAX_STRIDE:
+                            frames_since_detection += 1
+                        else:
+                            is_trackable = False
                     
                     if not is_trackable:
                         # Procesar detección
@@ -95,12 +129,14 @@ class YOLODetector:
                             persist=True,
                             tracker="bytetracker.yaml"
                         )
-                        self.update_tracks()
-                        is_trackable = len(self.tracks) > 0
+                        if results:
+                            results = results[0]
+                        is_trackable = True
+                        frames_since_detection = 0
                     
                     # Actualizar resultados
                     with self.lock:
-                        self.current_results = results[0]
+                        self.current_results = results
                     last_detection_time = current_time
             else:
                 time.sleep(0.01)
