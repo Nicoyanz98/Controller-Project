@@ -75,7 +75,7 @@ class DetectionThread(YOLODetectorThread):
         if len(prev_tracks) == 0 or len(prev_tracks) != len(self.tracks):
             return False
         
-        for prev, curr, prev_t, curr_t in zip(prev_boxes, curr_boxes, prev_tracks, self.tracks):
+        for prev, curr in zip(prev_boxes, curr_boxes):
             # 1. motion constraint
             motion = np.linalg.norm(curr[:2] - prev[:2])
             if motion > self.MOTION_THRESH:
@@ -87,8 +87,9 @@ class DetectionThread(YOLODetectorThread):
             if curr_area > prev_area * self.AREA_THRESH or curr_area < prev_area / self.AREA_THRESH:
                 return False
 
+        for prev, curr in zip(prev_tracks, self.tracks):
             # 3. covariance trace
-            if np.trace(curr_t.covariance) > np.trace(prev_t.covariance) * self.COV_INCREASE:
+            if np.trace(curr.covariance) > np.trace(prev.covariance) * self.COV_INCREASE:
                 return False
 
         return True
