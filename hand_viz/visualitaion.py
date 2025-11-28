@@ -16,7 +16,8 @@ class YOLODetector:
         self.lock = threading.Lock()
         self.target_fps = 30  
         self.frame_time = 1.0 / self.target_fps
-        self.stride = 3
+        self.tracker = None
+        self.tracks = []
 
     def camera_thread(self):
         cap = cv2.VideoCapture(0)
@@ -41,20 +42,23 @@ class YOLODetector:
                 time.sleep(0.001) #Permite que no consuma todo el nucleo
         cap.release()
 
+    def update_tracks(self):
+        self.tracker = self.model.predictor.trackers[0]
+        self.tracks = [t for t in self.tracker.tracked_stracks if t.is_activated]
+
     # Tracking without inference
     def interpolate(self, frame, path):
-        tracker = self.model.predictor.trackers[0]
-        tracks = [t for t in tracker.tracked_stracks if t.is_activated]
+        self.update_tracks()
         # Apply Kalman Filter to get predicted locations
-        tracker.multi_predict(tracks)
-        tracker.frame_id += 1
+        self.tracker.multi_predict(self.tracks)
+        self.tracker.frame_id += 1
         
-        boxes = np.array([np.hstack([t.xyxy, t.track_id, t.score, t.cls]) for t in tracks])
+        boxes = np.array([np.hstack([t.xyxy, t.track_id, t.score, t.cls]) for t in self.tracks])
         tensor = torch.from_numpy(boxes)
         
         # Update frame_id in tracks
-        for t in tracks:
-            t.frame_id = tracker.frame_id
+        for t in self.tracks:
+            t.frame_id = self.tracker.frame_id
         
         return Results(frame, path, self.model.names, boxes=tensor)
 
@@ -62,6 +66,7 @@ class YOLODetector:
         last_detection_time = time.time()
         frames = 0
         results = []
+        is_trackable = False
 
         while self.running:
             current_time = time.time()
@@ -72,7 +77,15 @@ class YOLODetector:
                     with self.lock:
                         frame_copy = self.current_frame.copy() #Tomamos una copia para trabajar con el
 
-                    if frames == 0:
+                    print("detect")
+                    print("1" + str(is_trackable))
+                    if is_trackable:
+                        results = self.interpolate(frame_copy, results[0].path)
+                        is_trackable = (results[0].boxes.conf <= 0.7).any()
+                            
+                        print("2" + str(is_trackable))
+                    
+                    if not is_trackable:
                         # Procesar detección
                         results = self.model.track(
                             frame_copy, 
@@ -82,14 +95,13 @@ class YOLODetector:
                             persist=True,
                             tracker="bytetracker.yaml"
                         )
-                    elif len(results) > 1:
-                        results = self.interpolate(frame_copy, results[0].path)
+                        self.update_tracks()
+                        is_trackable = len(self.tracks) > 0
                     
                     # Actualizar resultados
                     with self.lock:
                         self.current_results = results[0]
                     last_detection_time = current_time
-                    frames = (frames + 1) % (self.stride + 1)
             else:
                 time.sleep(0.01)
 
