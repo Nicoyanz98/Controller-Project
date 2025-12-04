@@ -117,15 +117,15 @@ class JoystickDetector:
         #incializamos hilos
         cam_thread = threading.Thread(target=self.threads["camera"].run)
         det_thread = threading.Thread(target=self.threads["detection"].run)
-        # hand_thread = threading.Thread(target=self.threads["hands"].run)
+        hand_thread = threading.Thread(target=self.threads["hands"].run)
         
         #Damos variable para que inice con el programa y cierre con el mismo
         cam_thread.daemon = True
         det_thread.daemon = True
-        # hand_thread.daemon = True
+        hand_thread.daemon = True
         cam_thread.start()
         det_thread.start()
-        # hand_thread.start()
+        hand_thread.start()
         
         self.fps_time = time.time()
         last_display_time = time.time()
@@ -146,6 +146,8 @@ class JoystickDetector:
                     
                     # FPS
                     self.display_fps(display_frame, current_time)
+
+                    self.display_hand_landmarks(display_frame)
 
                     cv2.imshow("Detector de joystick", display_frame)
 
