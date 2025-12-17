@@ -149,6 +149,8 @@ class JoystickDetector:
                     # FPS
                     self.display_fps(display_frame, current_time)
 
+                    self.display_hand_landmarks(display_frame)
+
                     cv2.imshow("Detector de joystick", display_frame)
 
             time.sleep(0.001)
