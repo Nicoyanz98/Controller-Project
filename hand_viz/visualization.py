@@ -1,4 +1,3 @@
-from ultralytics import YOLO
 import mediapipe as mp
 from mediapipe.tasks.python import vision
 from mediapipe.framework.formats import landmark_pb2
@@ -8,9 +7,25 @@ import time
 
 from threads import CameraThread, DetectionThread, HandsThread
 
+class MutexValue():
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.value = None
+
+    def update(self, new_value):
+        with self.lock:
+            self.value = new_value
+
+    def get(self):
+        copy = None
+        with self.lock:
+            copy = self.value.copy()
+        
+        return copy
+
 class JoystickDetector:
     def __init__(self):
-        self.model = YOLO("models/best.pt")
+        
 
         options = vision.HandLandmarkerOptions(
             base_options=mp.tasks.BaseOptions(model_asset_path="models/hand_landmarker.task"),
@@ -22,7 +37,6 @@ class JoystickDetector:
         )
         self.hand_recognizer = vision.HandLandmarker.create_from_options(options)
 
-
         self.running = True
 
         self.current_frame = None
@@ -33,6 +47,12 @@ class JoystickDetector:
         self.results_lock = threading.Lock()
         self.hands_detection_lock = threading.Lock()
 
+        self.mutex = {
+            "frame": MutexValue(),
+            "results": MutexValue(),
+            "hands_detection": MutexValue()
+        }
+
         self.target_fps = 30  
         self.frame_time = 1.0 / self.target_fps
 
@@ -41,10 +61,14 @@ class JoystickDetector:
 
         self.threads = {
             "camera": CameraThread(self), 
-            "detection": DetectionThread(self),
-            "hands": HandsThread(self)
+            "controller": DetectionThread(self, "models/controller-model.pt"),
+            "hands": DetectionThread(self, "models/hand-model.pt"),
         }
-    
+
+        self.start_thread("camera")
+        self.start_thread("controller")
+        self.start_thread("hands")
+
     def display_hand_landmarks(self, display_frame):
         MARGIN = 10  # pixels
         FONT_SIZE = 1
@@ -85,7 +109,7 @@ class JoystickDetector:
                 FONT_SIZE, HANDEDNESS_TEXT_COLOR, FONT_THICKNESS, cv2.LINE_AA
             )
 
-    def display_boxes(self, display_frame):
+    def display_controller(self, display_frame):
         with self.results_lock:
             current_results = self.current_results
         
@@ -113,20 +137,12 @@ class JoystickDetector:
         
         cv2.putText(display_frame, f"FPS: {self.fps}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
 
+    def start_thread(self, name):
+        thread = threading.Thread(target=self.threads[name].run)
+        thread.daemon = True
+        thread.start()
+
     def run(self):
-        #incializamos hilos
-        cam_thread = threading.Thread(target=self.threads["camera"].run)
-        det_thread = threading.Thread(target=self.threads["detection"].run)
-        hand_thread = threading.Thread(target=self.threads["hands"].run)
-        
-        #Damos variable para que inice con el programa y cierre con el mismo
-        cam_thread.daemon = True
-        det_thread.daemon = True
-        hand_thread.daemon = True
-        cam_thread.start()
-        det_thread.start()
-        hand_thread.start()
-        
         self.fps_time = time.time()
         last_display_time = time.time()
         
@@ -141,15 +157,11 @@ class JoystickDetector:
                     with self.frame_lock:
                         display_frame = self.current_frame.copy()
                     
-                    # Boxes
-                    self.display_boxes(display_frame)
-
+                    self.display_controller(display_frame)
                     self.display_hand_landmarks(display_frame)
-                    
+
                     # FPS
                     self.display_fps(display_frame, current_time)
-
-                    self.display_hand_landmarks(display_frame)
 
                     cv2.imshow("Detector de joystick", display_frame)
 

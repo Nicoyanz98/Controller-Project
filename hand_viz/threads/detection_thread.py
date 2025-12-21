@@ -1,20 +1,35 @@
 import time
+from ultralytics import YOLO
 from ultralytics.engine.results import Results
 import numpy as np
 import torch
 
 from threads import YOLODetectorThread
 
+MAX_STRIDE = 10
+MOTION_THRESH = 5
+AREA_THRESH = 1.007
+COV_INCREASE = 1.07
+MAX_WAIT_FPS = 30
+
 class DetectionThread(YOLODetectorThread):
     tracker = None
     tracks = []
-    MAX_STRIDE = 10
-    MOTION_THRESH = 5
-    AREA_THRESH = 1.007
-    COV_INCREASE = 1.07
-    results = None
+    
+    def __init__(self, YOLODetector, model_path, update_record, max_stride=MAX_STRIDE, motion_thresh=MOTION_THRESH, area_thresh=AREA_THRESH, cov_increase=COV_INCREASE):
+        super().__init__(YOLODetector)
 
-    MAX_WAIT_FPS = 30
+        self.update_record = update_record
+
+        self.model = YOLO(model_path)
+
+        self.max_stride = max_stride
+        self.motion_thresh = motion_thresh
+        self.area_thresh = area_thresh
+        self.cov_increase = cov_increase
+        self.results = None
+
+        self.max_wait_fps = MAX_WAIT_FPS
 
     def interpolate(self, frame, path):
         self.tracker = self.context.model.predictor.trackers[0]
@@ -48,18 +63,18 @@ class DetectionThread(YOLODetectorThread):
         for prev, curr in zip(prev_boxes, curr_boxes):
             # 1. motion constraint
             motion = np.linalg.norm(curr[:2] - prev[:2])
-            if motion > self.MOTION_THRESH:
+            if motion > self.motion_thresh:
                 return False
 
             # 2. area stability
             prev_area = (prev[2]-prev[0])*(prev[3]-prev[1])
             curr_area = (curr[2]-curr[0])*(curr[3]-curr[1])
-            if curr_area > prev_area * self.AREA_THRESH or curr_area < prev_area / self.AREA_THRESH:
+            if curr_area > prev_area * self.area_thresh or curr_area < prev_area / self.area_thresh:
                 return False
 
         for prev, curr in zip(prev_tracks, self.tracks):
             # 3. covariance trace
-            if np.trace(curr.covariance) > np.trace(prev.covariance) * self.COV_INCREASE:
+            if np.trace(curr.covariance) > np.trace(prev.covariance) * self.cov_increase:
                 return False
 
         return True
@@ -105,10 +120,9 @@ class DetectionThread(YOLODetectorThread):
                         frame_copy = self.context.current_frame.copy() #Tomamos una copia para trabajar con el
 
                     if is_trackable and self.results is not None:
-                        # Try to follow boxes without inference
                         self.make_following(frame_copy)
                         
-                        if self.is_following_stable and frames_since_detection < self.MAX_STRIDE:
+                        if self.is_following_stable and frames_since_detection < self.max_stride:
                             frames_since_detection += 1
                         else:
                             is_trackable = False
@@ -128,10 +142,10 @@ class DetectionThread(YOLODetectorThread):
                     if detection:
                         empty_frames = 0
                     else:
-                        # No detection made, then wait
-                        if empty_frames > (self.MAX_WAIT_FPS // 2):
+                        # Esperar si no hay detecciones
+                        if empty_frames > (self.max_wait_fps // 2):
                             empty_frames += 1
-                        cooldown = min(2 ** empty_frames, self.MAX_WAIT_FPS)
-                        time.sleep(cooldown * 0.01) # exponential wait
+                        cooldown = min(2 ** empty_frames, self.max_wait_fps) # Exponential wait
+                        time.sleep(cooldown * 0.01)
             else:
                 time.sleep(0.01)
