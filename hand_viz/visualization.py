@@ -42,7 +42,7 @@ class JoystickDetector:
 
         self.threads = {
             "camera": CameraThread(self), 
-            "controller": DetectionThread(self, f"{MODELS_DIR}/controller_model.pt", "controller"),
+            "controller": DetectionThread(self, f"{MODELS_DIR}/controller_model.pt", "controller", max_stride=1),
             "hands": DetectionThread(self, f"{MODELS_DIR}/hand_model.pt", "hands", max_stride=1),
         }
 
