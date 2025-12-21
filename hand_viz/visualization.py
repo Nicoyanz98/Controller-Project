@@ -1,8 +1,11 @@
 import cv2
 import threading
 import time
+import os
 
 from threads import CameraThread, DetectionThread
+
+MODELS_DIR = os.path.join("./models")
 
 class MutexValue():
     def __init__(self):
@@ -16,7 +19,7 @@ class MutexValue():
     def get(self):
         copy = None
         with self.lock:
-            copy = self.value.copy()
+            copy = self.value
         
         return copy
 
@@ -39,8 +42,8 @@ class JoystickDetector:
 
         self.threads = {
             "camera": CameraThread(self), 
-            "controller": DetectionThread(self, "controller_result", "models/controller-model.pt"),
-            "hands": DetectionThread(self, "hand_detection", "models/hand-model.pt"),
+            "controller": DetectionThread(self, f"{MODELS_DIR}/controller_model.pt", "controller"),
+            "hands": DetectionThread(self, f"{MODELS_DIR}/hand_model.pt", "hands", max_stride=1),
         }
 
         self.start_thread("camera")
@@ -48,7 +51,7 @@ class JoystickDetector:
         self.start_thread("hands")
 
     def display_boxes(self, display_frame, detection_name):
-        current_results = self.mutex["detection_name"].get()
+        current_results = self.mutex[detection_name].get()
         
         if (current_results is not None and current_results.boxes is not None and len(current_results.boxes) > 0):
             boxes = current_results.boxes.xyxy.cpu().numpy()
@@ -90,8 +93,9 @@ class JoystickDetector:
                 last_display_time = current_time
 
                 #Dibujamos el frame actual
-                display_frame = self.mutex["current_frame"].get()
-                if display_frame is not None:
+                current_frame = self.mutex["current_frame"].get()
+                if current_frame is not None:
+                    display_frame = current_frame.copy()
                     # Detection Boxes
                     self.display_boxes(display_frame, "controller")
                     self.display_boxes(display_frame, "hands")

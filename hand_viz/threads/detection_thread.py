@@ -115,9 +115,10 @@ class DetectionThread(YOLODetectorThread):
 
             #Limitamos FPS en la deteccion
             if current_time - last_detection_time >= self.context.frame_time:
-                frame_copy = self.mutex["current_frame"].get()
+                current_frame = self.context.mutex["current_frame"].get()
 
-                if frame_copy is not None:
+                if current_frame is not None:
+                    frame_copy = current_frame.copy()
                     if is_trackable and self.results is not None:
                         self._make_following(frame_copy)
                         
@@ -128,12 +129,12 @@ class DetectionThread(YOLODetectorThread):
                     
                     if not is_trackable:
                         # Procesar detección
-                        detection = self._make_inference(frame_copy)
+                        detection = self._make_inference(frame_copy) and self.max_stride > 1
                         frames_since_detection = 0
                         is_trackable = detection
                     
                     # Actualizar resultados
-                    self.mutex[self.mutex_name].update(self.results)
+                    self.context.mutex[self.mutex_name].update(self.results)
                     last_detection_time = current_time
                     
 
