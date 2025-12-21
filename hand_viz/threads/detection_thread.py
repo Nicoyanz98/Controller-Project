@@ -16,10 +16,10 @@ class DetectionThread(YOLODetectorThread):
     tracker = None
     tracks = []
     
-    def __init__(self, YOLODetector, model_path, update_record, max_stride=MAX_STRIDE, motion_thresh=MOTION_THRESH, area_thresh=AREA_THRESH, cov_increase=COV_INCREASE):
+    def __init__(self, YOLODetector, model_path, mutex_result_name, max_stride=MAX_STRIDE, motion_thresh=MOTION_THRESH, area_thresh=AREA_THRESH, cov_increase=COV_INCREASE):
         super().__init__(YOLODetector)
 
-        self.update_record = update_record
+        self.mutex_name = mutex_result_name
 
         self.model = YOLO(model_path)
 
@@ -31,8 +31,8 @@ class DetectionThread(YOLODetectorThread):
 
         self.max_wait_fps = MAX_WAIT_FPS
 
-    def interpolate(self, frame, path):
-        self.tracker = self.context.model.predictor.trackers[0]
+    def _interpolate(self, frame, path):
+        self.tracker = self.model.predictor.trackers[0]
         self.tracks = [t for t in self.tracker.tracked_stracks if t.is_activated]
         
         # Apply Kalman Filter to get predicted locations
@@ -50,9 +50,9 @@ class DetectionThread(YOLODetectorThread):
         else:
             tensor = torch.from_numpy(boxes)
 
-        self.results = Results(frame, path, self.context.model.names, boxes=tensor)
+        self.results = Results(frame, path, self.model.names, boxes=tensor)
 
-    def check_stability_with(self, prev_boxes, prev_tracks):
+    def _check_stability_with(self, prev_boxes, prev_tracks):
         curr_boxes = self.results.boxes.xyxy.numpy()
         if len(curr_boxes) == 0 or len(prev_boxes) != len(curr_boxes):
             return False
@@ -79,16 +79,16 @@ class DetectionThread(YOLODetectorThread):
 
         return True
 
-    def make_following(self, frame_copy):
+    def _make_following(self, frame_copy):
         prev_boxes = self.results.boxes.xyxy.numpy()
         prev_tracks = self.tracks
         
-        self.interpolate(frame_copy, self.results.path)
+        self._interpolate(frame_copy, self.results.path)
 
-        self.is_following_stable = self.check_stability_with(prev_boxes, prev_tracks)
+        self.is_following_stable = self._check_stability_with(prev_boxes, prev_tracks)
 
-    def make_inference(self, frame_copy):
-        inference = self.context.model.track(
+    def _make_inference(self, frame_copy):
+        inference = self.model.track(
             frame_copy, 
             imgsz=320, 
             conf=0.5, 
@@ -115,12 +115,11 @@ class DetectionThread(YOLODetectorThread):
 
             #Limitamos FPS en la deteccion
             if current_time - last_detection_time >= self.context.frame_time:
-                if self.context.current_frame is not None:
-                    with self.context.frame_lock:
-                        frame_copy = self.context.current_frame.copy() #Tomamos una copia para trabajar con el
+                frame_copy = self.mutex["current_frame"].get()
 
+                if frame_copy is not None:
                     if is_trackable and self.results is not None:
-                        self.make_following(frame_copy)
+                        self._make_following(frame_copy)
                         
                         if self.is_following_stable and frames_since_detection < self.max_stride:
                             frames_since_detection += 1
@@ -129,13 +128,12 @@ class DetectionThread(YOLODetectorThread):
                     
                     if not is_trackable:
                         # Procesar detección
-                        detection = self.make_inference(frame_copy)
+                        detection = self._make_inference(frame_copy)
                         frames_since_detection = 0
                         is_trackable = detection
                     
                     # Actualizar resultados
-                    with self.context.results_lock:
-                        self.context.current_results = self.results
+                    self.mutex[self.mutex_name].update(self.results)
                     last_detection_time = current_time
                     
 

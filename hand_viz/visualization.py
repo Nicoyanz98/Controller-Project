@@ -1,11 +1,8 @@
-import mediapipe as mp
-from mediapipe.tasks.python import vision
-from mediapipe.framework.formats import landmark_pb2
 import cv2
 import threading
 import time
 
-from threads import CameraThread, DetectionThread, HandsThread
+from threads import CameraThread, DetectionThread
 
 class MutexValue():
     def __init__(self):
@@ -25,32 +22,13 @@ class MutexValue():
 
 class JoystickDetector:
     def __init__(self):
-        
-
-        options = vision.HandLandmarkerOptions(
-            base_options=mp.tasks.BaseOptions(model_asset_path="models/hand_landmarker.task"),
-            running_mode=vision.RunningMode.IMAGE,
-            # min_hand_detection_confidence=0.5,
-            # min_hand_presence_confidence=0.5,
-            # min_tracking_confidence=0.5,
-            num_hands=2
-        )
-        self.hand_recognizer = vision.HandLandmarker.create_from_options(options)
 
         self.running = True
 
-        self.current_frame = None
-        self.current_results = None
-        self.hands_detection = None
-        
-        self.frame_lock = threading.Lock()
-        self.results_lock = threading.Lock()
-        self.hands_detection_lock = threading.Lock()
-
         self.mutex = {
-            "frame": MutexValue(),
-            "results": MutexValue(),
-            "hands_detection": MutexValue()
+            "current_frame": MutexValue(),
+            "controller": MutexValue(),
+            "hands": MutexValue()
         }
 
         self.target_fps = 30  
@@ -61,57 +39,16 @@ class JoystickDetector:
 
         self.threads = {
             "camera": CameraThread(self), 
-            "controller": DetectionThread(self, "models/controller-model.pt"),
-            "hands": DetectionThread(self, "models/hand-model.pt"),
+            "controller": DetectionThread(self, "controller_result", "models/controller-model.pt"),
+            "hands": DetectionThread(self, "hand_detection", "models/hand-model.pt"),
         }
 
         self.start_thread("camera")
         self.start_thread("controller")
         self.start_thread("hands")
 
-    def display_hand_landmarks(self, display_frame):
-        MARGIN = 10  # pixels
-        FONT_SIZE = 1
-        FONT_THICKNESS = 1
-        HANDEDNESS_TEXT_COLOR = (88, 205, 54) # vibrant green
-
-        with self.hands_detection_lock:
-            hand_landmarks_list = self.hands_detection.hand_landmarks
-            handedness_list = self.hands_detection.handedness
-
-        # Loop through the detected hands to visualize.
-        for idx in range(len(hand_landmarks_list)):
-            hand_landmarks = hand_landmarks_list[idx]
-            handedness = handedness_list[idx]
-
-            # Draw the hand landmarks.
-            hand_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
-            hand_landmarks_proto.landmark.extend([
-                landmark_pb2.NormalizedLandmark(x=landmark.x, y=landmark.y, z=landmark.z) for landmark in hand_landmarks
-            ])
-            mp.solutions.drawing_utils.draw_landmarks(
-                display_frame,
-                hand_landmarks_proto,
-                mp.solutions.hands.HAND_CONNECTIONS,
-                mp.solutions.drawing_styles.get_default_hand_landmarks_style(),
-                mp.solutions.drawing_styles.get_default_hand_connections_style()
-            )
-
-            # Get the top left corner of the detected hand's bounding box.
-            height, width, _ = display_frame.shape
-            x_coordinates = [landmark.x for landmark in hand_landmarks]
-            y_coordinates = [landmark.y for landmark in hand_landmarks]
-            text_x = int(min(x_coordinates) * width)
-            text_y = int(min(y_coordinates) * height) - MARGIN
-
-            # Draw handedness (left or right hand) on the image.
-            cv2.putText(display_frame, f"{handedness[0].category_name}", (text_x, text_y), cv2.FONT_HERSHEY_DUPLEX,
-                FONT_SIZE, HANDEDNESS_TEXT_COLOR, FONT_THICKNESS, cv2.LINE_AA
-            )
-
-    def display_controller(self, display_frame):
-        with self.results_lock:
-            current_results = self.current_results
+    def display_boxes(self, display_frame, detection_name):
+        current_results = self.mutex["detection_name"].get()
         
         if (current_results is not None and current_results.boxes is not None and len(current_results.boxes) > 0):
             boxes = current_results.boxes.xyxy.cpu().numpy()
@@ -121,7 +58,7 @@ class JoystickDetector:
             for _, (box, class_id, confidence) in enumerate(zip(boxes, classes, confidences)):
                 x1, y1, x2, y2 = map(int, box)
                 class_id = int(class_id)
-                class_name = self.model.names[class_id]
+                class_name = self.threads[detection_name].model.names[class_id]
                 confidence = float(confidence)
                 
                 cv2.rectangle(display_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
@@ -152,13 +89,12 @@ class JoystickDetector:
             if current_time - last_display_time >= self.frame_time:
                 last_display_time = current_time
 
-                #Dibujamos el frame acutal
-                if self.current_frame is not None:
-                    with self.frame_lock:
-                        display_frame = self.current_frame.copy()
-                    
-                    self.display_controller(display_frame)
-                    self.display_hand_landmarks(display_frame)
+                #Dibujamos el frame actual
+                display_frame = self.mutex["current_frame"].get()
+                if display_frame is not None:
+                    # Detection Boxes
+                    self.display_boxes(display_frame, "controller")
+                    self.display_boxes(display_frame, "hands")
 
                     # FPS
                     self.display_fps(display_frame, current_time)

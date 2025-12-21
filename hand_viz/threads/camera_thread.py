@@ -19,8 +19,8 @@ class CameraThread(YOLODetectorThread):
             if current_time - last_capture_time >= self.context.frame_time:
                 ret, frame = cap.read()
                 if ret:
-                    with self.context.frame_lock: #PERMITIMOS QUE SOLO UN HILO TRABAJE CON EL FRAME ACTUAL
-                        self.context.current_frame = frame.copy() #Copiamos el frame para que solo se trabaje con este
+                    #PERMITIMOS QUE SOLO UN HILO TRABAJE CON EL FRAME ACTUAL
+                    self.mutex["current_frame"].update(frame.copy())#Copiamos el frame para que solo se trabaje con este
 
                 last_capture_time = current_time
             else:
