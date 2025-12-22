@@ -1,36 +1,39 @@
-## Data collector
-### Setup
+# Input Mapper
+## Setup
 Setup virtual enviroment
-```cmd
-python3 -m venv <venv_dir>
+```bash
+$ python3 -m venv <venv_dir>
 ```
 
 Activate virtual enviroment
-```cmd
-source <venv_dir>/bin/activate
+```bash
+$ source <venv_dir>/bin/activate
 ```
 
 Install the requirements:
-```cmd
-pip install -r requirements.txt
+```bash
+$ pip install -r requirements.txt
 ```
-### How to use?
-#### Data Collector
+## How to use?
+### CaptureHands2
 Run the next code to use the data collection tool:
-```cmd
-cd tools
-python3 main.py [-C]
+```bash
+$ cd capture_hands2
+$ python3 main_menu.py
 ```
->`-C` indicates that there is a controller connected
 
-#### Gesture Recognition
-```cmd
-cd gesture_recognition
-python3 main.py
+### Visualization
+Run the next code to use the YOLO Detection visualizator:
+```bash
+$ cd hand_viz
+$ python3 visualization.py
 ```
 
 ## TODO
-- [ ] Implementar botones (solo tiene en cuenta movimiento)
-- [ ] Detectar gestos de ambas manos (considerar performance)
-- [ ] Reentrenar modelo con nuestros gestos (funciona con gestos por defecto)
-- [ ] Arreglar contador de FPS (actualmente el reconocedor es asíncrono)
+- [x] Solve problems with event flooding
+- [x] Train YOLO Pose for hand keypoint
+- [x] Train YOLO for controller zones
+- [ ] Solve compatibility for data collection
+- [ ] Retrain controller zone detector with more variety
+- [ ] Solve overfitting hand keypoint detection
+- [ ] FPS Counter (I think it's not acknowledging other threads)
