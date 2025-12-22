@@ -16,10 +16,10 @@ class DetectionThread(YOLODetectorThread):
     tracker = None
     tracks = []
     
-    def __init__(self, YOLODetector, model_path, mutex_result_name, max_stride=MAX_STRIDE, motion_thresh=MOTION_THRESH, area_thresh=AREA_THRESH, cov_increase=COV_INCREASE):
+    def __init__(self, YOLODetector, model_path, thread_name, max_stride=MAX_STRIDE, motion_thresh=MOTION_THRESH, area_thresh=AREA_THRESH, cov_increase=COV_INCREASE):
         super().__init__(YOLODetector)
 
-        self.mutex_name = mutex_result_name
+        self.thread_name = thread_name
 
         self.model = YOLO(model_path)
 
@@ -134,15 +134,15 @@ class DetectionThread(YOLODetectorThread):
                         is_trackable = detection
                     
                     # Actualizar resultados
-                    self.context.mutex[self.mutex_name].update(self.results)
+                    self.context.mutex[self.thread_name].update(self.results)
                     last_detection_time = current_time
                     
-
                     if detection:
                         empty_frames = 0
+                        
                     else:
                         # Esperar si no hay detecciones
-                        if empty_frames > (self.max_wait_fps // 2):
+                        if empty_frames < (self.max_wait_fps // 2):
                             empty_frames += 1
                         cooldown = min(2 ** empty_frames, self.max_wait_fps) # Exponential wait
                         time.sleep(cooldown * 0.01)

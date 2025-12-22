@@ -8,16 +8,17 @@ from threads import CameraThread, DetectionThread
 MODELS_DIR = os.path.join("./models")
 
 class MutexValue():
-    def __init__(self):
+    def __init__(self, value=None):
         self.lock = threading.Lock()
-        self.value = None
+        self.value = value
+        self.default = value
 
     def update(self, new_value):
         with self.lock:
             self.value = new_value
 
     def get(self):
-        copy = None
+        copy = self.default
         with self.lock:
             copy = self.value
         

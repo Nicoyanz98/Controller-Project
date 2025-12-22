@@ -36,4 +36,3 @@ $ python3 visualization.py
 - [ ] Solve compatibility for data collection
 - [ ] Retrain controller zone detector with more variety
 - [ ] Solve overfitting hand keypoint detection
-- [ ] FPS Counter (I think it's not acknowledging other threads)
