@@ -1,7 +1,7 @@
 class AppConfig:
 
-    SCREEN_WIDTH = 800
-    SCREEN_HEIGHT = 800  
+    VIRTUAL_WIDTH = 800
+    VIRTUAL_HEIGHT = 800  
     FPS = 120
     
 

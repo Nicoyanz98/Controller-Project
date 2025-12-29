@@ -207,9 +207,11 @@ class EventHandler:
     def process_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                self.app.running = False
+                self.app.selected_option = "QUIT"
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 self.handle_mouse_click(event)
+            elif event.type == pygame.VIDEORESIZE:
+                self.app.handle_resize(event.w, event.h)
 
         self.update_joystick()
         self.update_active_button()
