@@ -1,11 +1,11 @@
 import pygame
 from config import AppConfig
 import os
-from renderer import Renderer
+from collector_renderer import CollectorRenderer
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-class RendererTriggers(Renderer):
+class RendererTriggers(CollectorRenderer):
     def __init__(self, screen, app):
         BUTTON_FILES = {
             'trigger_L': 'trigger_l2.png',

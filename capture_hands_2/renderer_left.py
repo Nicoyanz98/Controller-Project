@@ -1,9 +1,9 @@
 import os
-from renderer import Renderer
+from collector_renderer import CollectorRenderer
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-class RendererLeft(Renderer):
+class RendererLeft(CollectorRenderer):
     def __init__(self, screen, app):
         self.name = "LEFT"
         BUTTON_FILES = {
