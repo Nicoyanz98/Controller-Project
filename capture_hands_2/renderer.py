@@ -21,8 +21,8 @@ class Renderer:
     def resize_by(self, screen_width, screen_height):
         self.screen_size = (screen_width, screen_height)
 
-        self.font = self.scaled_font(40)
-        self.small_font = self.scaled_font(30)
+        self.font = self.scaled_font(30)
+        self.small_font = self.scaled_font(18)
 
         self.img_size = 60
 
@@ -42,7 +42,8 @@ class Renderer:
             self.camera_rect = (screen_width // 2, 50, 0, 0)
         
     def scaled_font(self, size):
-        scale = self.screen.get_height() / AppConfig.VIRTUAL_HEIGHT
+        screen_width, screen_height = self.screen_size
+        scale = screen_width / screen_height
         font_size = int(size * scale)
         return pygame.font.Font(None, font_size)
 

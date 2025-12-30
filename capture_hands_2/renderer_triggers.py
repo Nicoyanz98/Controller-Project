@@ -49,24 +49,21 @@ class RendererTriggers(Renderer):
         self.draw_combo_triggers()
     
     def draw_individual_triggers(self):
-        camera_frame = self.app.camera_system.get_frame()
-        
-        if camera_frame:
-            start_y = 60 + camera_frame.get_height() + 30
-        else:
-            start_y = 200
+        screen_width, _ = self.screen_size
+        _, camera_y, _, camera_height = self.camera_rect
+        start_y = camera_height + camera_y + 30
+
+        button_size = int(0.07 * screen_width)
+        button_spacing = int(0.0125 * screen_width)
+        total_width = (button_size * 4) + (button_spacing * 3)
+        start_x = screen_width // 2 - total_width // 2
 
         title = self.font.render("Triggers Individuales", True, AppConfig.TEXT)
-        title_x = AppConfig.VIRTUAL_WIDTH // 2 - title.get_width() // 2
+        title_x = screen_width // 2 - title.get_width() // 2
         self.screen.blit(title, (title_x, start_y - 30))
 
         button_positions = ['bumper_L', 'trigger_L', 'bumper_R', 'trigger_R']
         button_labels = ['L1', 'L2', 'R1', 'R2']
-        
-        button_size = 70
-        button_spacing = 80
-        total_width = (button_size * 4) + (button_spacing * 3)
-        start_x = AppConfig.VIRTUAL_WIDTH // 2 - total_width // 2
 
         for i, (button_name, label) in enumerate(zip(button_positions, button_labels)):
             if self.button_states[button_name]:
@@ -93,13 +90,16 @@ class RendererTriggers(Renderer):
                 self.screen.blit(label_surf, label_rect)
 
     def draw_combo_triggers(self):
-       #Dibujamso combinaciones de triggers
-        camera_frame = self.app.camera_system.get_frame()
+        screen_width, screen_height = self.screen_size
+        _, camera_y, _, camera_height = self.camera_rect
         
-        if camera_frame:
-            start_y = 60 + camera_frame.get_height() + 10 + 120  
-        else:
-            start_y = 320
+        # Posicionamos debajodel stick
+        button_size = int(0.07 * screen_width)
+        button_spacing_x = int(0.0875 * screen_width)
+        total_width = (button_size * 4) + (button_spacing_x * 3)
+        start_x = screen_width // 2 - total_width // 2
+
+        start_y = camera_height + camera_y + button_size + 40 * 2
 
 
         combos = [
@@ -128,13 +128,11 @@ class RendererTriggers(Renderer):
             'combo_R2_R1': 'R2+R1',
         }
 
-        button_size = 35
-        button_spacing_x = 65
-        button_spacing_y = 30
+        button_spacing_y = int(0.0875 * screen_height)
         
         for row_idx, row in enumerate(combos):
             total_width = (button_size * 3) + (button_spacing_x * 2)
-            start_x = AppConfig.VIRTUAL_WIDTH // 2 - total_width // 2
+            start_x = screen_width // 2 - total_width // 2
             y_pos = start_y + (row_idx * button_spacing_y)
             
             for col_idx, combo_name in enumerate(row):
