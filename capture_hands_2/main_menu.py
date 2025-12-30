@@ -4,7 +4,7 @@ from camera_system import CameraSystem
 
 class MainMenu:
     def scaled_font(self, size):
-        scale = self.screen.get_width() / AppConfig.VIRTUAL_WIDTH
+        scale = self.screen.get_height() / AppConfig.VIRTUAL_HEIGHT
         font_size = int(size * scale)
         return pygame.font.Font(None, font_size)
     
