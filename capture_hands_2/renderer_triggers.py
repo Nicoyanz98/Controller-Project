@@ -49,9 +49,9 @@ class RendererTriggers(CollectorRenderer):
         self.draw_combo_triggers()
     
     def draw_individual_triggers(self):
-        screen_width, _ = self.screen_size
+        screen_width, screen_height = self.screen_size
         _, camera_y, _, camera_height = self.camera_rect
-        start_y = camera_height + camera_y + 30
+        start_y = camera_height + camera_y + int(0.07 * screen_height)
 
         button_size = int(0.07 * screen_width)
         button_spacing = int(0.0125 * screen_width)
@@ -99,18 +99,16 @@ class RendererTriggers(CollectorRenderer):
         total_width = (button_size * 4) + (button_spacing_x * 3)
         start_x = screen_width // 2 - total_width // 2
 
-        start_y = camera_height + camera_y + button_size + 40 * 2
+        start_y = camera_height + camera_y + button_size + int(0.07 * screen_height) * 2
 
 
         combos = [
-            # Fila 1: L1 + ...
-            ['combo_L1_R1', 'combo_L1_R2', 'combo_L1_L2'],
-            # Fila 2: L2 + ...
-            ['combo_L2_R1', 'combo_L2_R2', 'combo_L2_L1'],
-            # Fila 3: R1 + ...
-            ['combo_R1_L1', 'combo_R1_L2', 'combo_R1_R2'],
-            # Fila 4: R2 + ...
-            ['combo_R2_L1', 'combo_R2_L2', 'combo_R2_R1'],
+            # Fila 1:
+            ['combo_L1_R1', 'combo_L1_R2', 'combo_L1_L2', 'combo_L2_R1'],
+            # Fila 2:
+            ['combo_L2_R2', 'combo_L2_L1', 'combo_R1_L1', 'combo_R1_L2'],
+            # Fila 3:
+            ['combo_R1_R2', 'combo_R2_L1', 'combo_R2_L2', 'combo_R2_R1'],
         ]
         
         combo_labels = {
@@ -130,8 +128,9 @@ class RendererTriggers(CollectorRenderer):
 
         button_spacing_y = int(0.0875 * screen_height)
         
+
         for row_idx, row in enumerate(combos):
-            total_width = (button_size * 3) + (button_spacing_x * 2)
+            total_width = (button_size * 4) + (button_spacing_x * 3)
             start_x = screen_width // 2 - total_width // 2
             y_pos = start_y + (row_idx * button_spacing_y)
             

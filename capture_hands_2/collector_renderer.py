@@ -12,6 +12,8 @@ class CollectorRenderer(Renderer):
         self.button_states = states
         self.draw_sticks = sticks
         
+        self.camera_scale = 0.6
+        
         super().__init__(screen, app, title)
 
         self.button_rects = {}
@@ -31,11 +33,11 @@ class CollectorRenderer(Renderer):
         if self.draw_sticks:
             self.stick_images_normal = self.load_stick_images("normal")
             self.stick_images_pressed = self.load_stick_images("pressed")
-        
+
         frame = self.app.camera_system.get_frame()
         if frame:
             new_camera_width = int(self.camera_scale * screen_width)
-            new_camera_height = int(new_camera_width * (frame.get_width() / frame.get_height()))
+            new_camera_height = int(new_camera_width * (frame.get_height() / frame.get_width()))
             self.camera_rect = (screen_width // 2 - new_camera_width // 2, 50, new_camera_width, new_camera_height)
         else:
             self.camera_rect = (screen_width // 2, 50, 0, 0)
@@ -263,7 +265,7 @@ class CollectorRenderer(Renderer):
         total_width = (button_size * 4) + (button_spacing * 3)
         start_x = screen_width // 2 - total_width // 2
 
-        start_y = camera_height + camera_y + button_size + int(0.05 * screen_height) * 2
+        start_y = camera_height + camera_y + button_size + int(0.07 * screen_height) * 2
 
         buttons_title = self.font.render("Botones", True, AppConfig.TEXT)
         title_x = screen_width // 2 - buttons_title.get_width() // 2
@@ -295,7 +297,7 @@ class CollectorRenderer(Renderer):
         screen_width, screen_height = self.screen_size
         _, camera_y, _, camera_height = self.camera_rect
         #Vemos posicion y
-        start_y = camera_height + camera_y + int(0.045 * screen_height)
+        start_y = camera_height + camera_y + int(0.07 * screen_height)
 
         #Vemos posicion x
         # Se Calcula posición horizontal centrada para los 9 sticks
