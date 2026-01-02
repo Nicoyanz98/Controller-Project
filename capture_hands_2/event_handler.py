@@ -16,15 +16,67 @@ class EventHandler:
 
 
     def init_joystick(self):
-       
         pygame.joystick.init()
         if pygame.joystick.get_count() > 0:
             self.joystick = pygame.joystick.Joystick(0)
             self.joystick.init()
-            print(f"Joystick conectado: {self.joystick.get_name()}")
+            name = self.joystick.get_name()
+            print(f"Joystick conectado: {name}")                
             print(f"Botones disponibles: {self.joystick.get_numbuttons()}")
+            self.type = 0
+            
+            if "xbox" in name.lower():
+                self.type += 1
+
+            self.init_buttons_maps()
         else:
-            print("No se encontró joystick/gamepad")
+            # print("No se encontró joystick/gamepad")
+            raise Exception("No se encontró joystick/gamepad")
+
+    def init_buttons_maps(self):
+        if not self.joystick:
+            return
+        
+        self.axis = {
+            #Usamos (x,y) y cambia segun el stick
+            "stick_left": (0, 1),
+            "stick_right": (3, 4) if self.type else (2, 3),
+            "trigger_L": 2 if self.type else 4,
+            "trigger_R": 5,
+
+        }
+
+        self.button_number = {
+            "button_A": 0,     # Botón A (Xbox) / X (PlayStation)
+            "button_B": 1,     # Botón B (Xbox) / Círculo (PlayStation)
+            "button_X": 2,     # Botón X (Xbox) / Cuadrado (PlayStation)
+            "button_Y": 3,     # Botón Y (Xbox) / Triángulo (PlayStation)
+            "bumper_L": 4,     # LB (Xbox) / L1 (PlayStation)
+            "bumper_R": 5,     # RB (Xbox) / R1 (PlayStation)
+            "trigger_L": 6,
+            "trigger_R": 7,
+        }
+
+        self.stick_directions = {
+            (0, 0): "neutral",
+            (1, 0): "right",
+            (-1, 0): "left", 
+            (0, -1): "up",     
+            (0, 1): "down",    
+            (1, -1): "up_right",
+            (-1, -1): "up_left",
+            (1, 1): "down_right",
+            (-1, 1): "down_left"
+        }
+
+        self.dpad_direction = {
+            (0, 1): 'up',
+            (0, -1): 'down',
+            (-1, 0): 'left',
+            (1, 0): 'right',
+        }
+        
+
 
     def is_button_pressed(self, button_name):
         if not self.joystick:
@@ -32,35 +84,25 @@ class EventHandler:
         
         if button_name == "trigger_L": 
             try:
-                axis_value = self.joystick.get_axis(4)  
+                axis_value = self.joystick.get_axis(self.axis[button_name])
                 return axis_value > 0.5 
             except:
-                if self.joystick.get_numbuttons() > 6:
-                    return self.joystick.get_button(6) == 1
+                if self.joystick.get_numbuttons() > self.button_number[button_name]:
+                    return self.joystick.get_button(self.button_number[button_name]) == 1
                 return False
         
         elif button_name == "trigger_R":  
 
             try:
-                axis_value = self.joystick.get_axis(5)  
+                axis_value = self.joystick.get_axis(self.axis[button_name])  
                 return axis_value > 0.5  
             except:
 
-                if self.joystick.get_numbuttons() > 7:
-                    return self.joystick.get_button(7) == 1
+                if self.joystick.get_numbuttons() > self.button_number[button_name]:
+                    return self.joystick.get_button(self.button_number[button_name]) == 1
                 return False
 
-       
-        button_map = {
-            "button_A": 0,     # Botón A (Xbox) / X (PlayStation)
-            "button_B": 1,     # Botón B (Xbox) / Círculo (PlayStation)
-            "button_X": 2,     # Botón X (Xbox) / Cuadrado (PlayStation)
-            "button_Y": 3,     # Botón Y (Xbox) / Triángulo (PlayStation)
-            "bumper_L": 4,     # LB (Xbox) / L1 (PlayStation)
-            "bumper_R": 5,     # RB (Xbox) / R1 (PlayStation)
-        }
-        
-        button_index = button_map.get(button_name)
+        button_index = self.button_number.get(button_name)
         if button_index is not None and button_index < self.joystick.get_numbuttons():
             return self.joystick.get_button(button_index) == 1
         
@@ -82,34 +124,16 @@ class EventHandler:
         x, y = hat
         
         # Mapear ampeamos direcciones
-        if y == 1 and x == 0:
-            return 'up'
-        elif y == -1 and x == 0:
-            return 'down'
-        elif x == -1 and y == 0:
-            return 'left'
-        elif x == 1 and y == 0:
-            return 'right'
-        else:
-            return None  # Neutral o diagonal
+        return self.dpad_direction.get((x, y), None)
         
     def is_dpad_pressed(self, direction):
         current_direction = self.get_dpad_direction()
         return current_direction == direction
 
-
-
-
     def get_stick_direction_9_way(self, stick_name):
 
-        #Usamos (x,y) y cambia segun el stick
-        axis_map = {
-        "stick_left": (0, 1), #
-        "stick_right": (2, 3)
-        }
-
         #Vemos de cual se stick se trata y obtenemos sus valores
-        x_axis, y_axis = axis_map[stick_name]
+        x_axis, y_axis = self.axis[stick_name]
         x_value = self.joystick.get_axis(x_axis)
         y_value = self.joystick.get_axis(y_axis)
 
@@ -121,20 +145,7 @@ class EventHandler:
         y_dir = 0 if abs(y_value) < threshold else (1 if y_value > 0 else -1)
 
         #Mapeamos las direcciones posibles
-        directions = {
-        (0, 0): "neutral",
-        (1, 0): "right",
-        (-1, 0): "left", 
-        (0, -1): "up",     
-        (0, 1): "down",    
-        (1, -1): "up_right",
-        (-1, -1): "up_left",
-        (1, 1): "down_right",
-        (-1, 1): "down_left"
-        }
-
-        
-        return directions.get((x_dir, y_dir))
+        return self.stick_directions.get((x_dir, y_dir))
     
     def is_stick_in_direction(self, stick_name, direction):
    
@@ -177,9 +188,6 @@ class EventHandler:
                 # Verifiamos ambos presionados
                 return (self.is_button_pressed(tech_button1) and self.is_button_pressed(tech_button2))
             return False
-
-
-
         
         #Caso d-pad y gamepad derecho
         elif button_name.startswith('dpad_') or button_name.startswith('button_'):
