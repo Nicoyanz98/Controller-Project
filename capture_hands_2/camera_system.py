@@ -144,7 +144,7 @@ class CameraSystem:
             pic_count = len([pic for pic in os.listdir(self.capture_dir) if pic.endswith('.jpg')])
 
             timestamp = time.strftime("%Y%m%d_%H%M%S")
-            filename = f"{self.capture_dir}/{pic_count}_captura_{timestamp}.jpg"
+            filename = f"{self.capture_dir}/{pic_count}_{self.capture_dir}_{timestamp}.jpg"
             frame_bgr = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
             cv2.imwrite(filename, frame_bgr)
 
