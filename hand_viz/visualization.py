@@ -26,9 +26,9 @@ class JoystickDetector:
         self.fps = 0
 
         self.workers = {
-            "camera": CameraWorker(self), 
-            "controller": DetectionWorker(self, f"{MODELS_DIR}/controller_model.pt", "controller", max_stride=1),
-            "hands": DetectionWorker(self, f"{MODELS_DIR}/hand_model.pt", "hands", max_stride=1),
+            "camera": CameraWorker(self, self.frame_time), 
+            "controller": DetectionWorker(self, self.frame_time, f"{MODELS_DIR}/controller_model.pt", "controller", max_stride=1),
+            "hands": DetectionWorker(self, self.frame_time, f"{MODELS_DIR}/hand_model.pt", "hands", max_stride=1),
         }
 
         self.threads = []
@@ -90,7 +90,7 @@ class JoystickDetector:
         self.fps_time = time.time()
         last_display_time = time.time()
         
-        while self.running:
+        while self.is_running():
             current_time = time.time()
             
             if current_time - last_display_time >= self.frame_time:
@@ -123,9 +123,11 @@ class JoystickDetector:
     def get_current_frame(self):
         return self.mutex["camera"].get()
     
-    def update_current_frame(self, frame):
-        #Copiamos el frame para que solo se trabaje con este
-        self.mutex["camera"].update(frame.copy())
+    def update_mutex_value(self, name, value):
+        self.mutex[name].update(value)
+    
+    def is_running(self):
+        return self.running
 
 
 if __name__ == "__main__":

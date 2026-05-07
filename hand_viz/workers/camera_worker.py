@@ -12,15 +12,15 @@ class CameraWorker(YOLOWorker):
         
         last_capture_time = time.time()
 
-        while self.context.running:
+        while self.context.is_running():
             current_time = time.time()
 
             #Limitamos FPS en la camara
-            if current_time - last_capture_time >= self.context.frame_time:
+            if current_time - last_capture_time >= self.frame_time:
                 ret, frame = cap.read()
                 if ret:
                     #PERMITIMOS QUE SOLO UN HILO TRABAJE CON EL FRAME ACTUAL
-                    self.context.update_current_frame(frame)
+                    self.context.update_mutex_value(self.thread_name, frame.copy()) #Copiamos el frame para que solo se trabaje con este
 
                 last_capture_time = current_time
             else:

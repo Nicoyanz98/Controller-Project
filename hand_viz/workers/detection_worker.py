@@ -16,8 +16,8 @@ class DetectionWorker(YOLOWorker):
     tracker = None
     tracks = []
     
-    def __init__(self, YOLODetector, model_path, thread_name, max_stride=MAX_STRIDE, motion_thresh=MOTION_THRESH, area_thresh=AREA_THRESH, cov_increase=COV_INCREASE):
-        super().__init__(YOLODetector)
+    def __init__(self, frame_time, context, model_path, thread_name, max_stride=MAX_STRIDE, motion_thresh=MOTION_THRESH, area_thresh=AREA_THRESH, cov_increase=COV_INCREASE):
+        super().__init__(frame_time, context)
 
         self.thread_name = thread_name
 
@@ -110,11 +110,11 @@ class DetectionWorker(YOLOWorker):
         detection = False
         empty_frames = 0
 
-        while self.context.running:
+        while self.context.is_running():
             current_time = time.time()
 
             #Limitamos FPS en la deteccion
-            if current_time - last_detection_time >= self.context.frame_time:
+            if current_time - last_detection_time >= self.frame_time:
                 current_frame = self.context.get_current_frame()
 
                 if current_frame is not None:
@@ -134,7 +134,7 @@ class DetectionWorker(YOLOWorker):
                         is_trackable = detection
                     
                     # Actualizar resultados
-                    self.context.mutex[self.thread_name].update(self.results)
+                    self.context.update_mutex_value(self.thread_name, self.results)
                     last_detection_time = current_time
                     
                     if detection:

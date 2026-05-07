@@ -7,8 +7,8 @@ from workers.worker import YOLOWorker
 class HandsWorker(YOLOWorker):
     detection = None
 
-    def __init__(self, YOLODetector):
-        super().__init__(YOLODetector)
+    def __init__(self, frame_time, context):
+        super().__init__(frame_time, context)
         options = vision.HandLandmarkerOptions(
             base_options=mp.tasks.BaseOptions(model_asset_path="models/hand_landmarker.task"),
             running_mode=vision.RunningMode.IMAGE,
@@ -19,23 +19,23 @@ class HandsWorker(YOLOWorker):
         )
         self.hand_recognizer = vision.HandLandmarker.create_from_options(options)
 
-    def detect_hands(self, frame):
+    def _detect_hands(self, frame):
         mp_frame = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
         self.detection = self.hand_recognizer.detect(mp_frame)
 
     def run(self):
         last_detection_time = time.time()
 
-        while self.context.running:
+        while self.context.is_running():
             current_time = time.time()
-            if current_time - last_detection_time >= self.context.frame_time:
+            if current_time - last_detection_time >= self.frame_time:
                 frame_copy = self.get_current_frame()
                 if frame_copy is not None:
 
-                    self.detect_hands(frame_copy)
-                    self.draw_landmarks(frame_copy)
+                    self._detect_hands(frame_copy)
+                    # self.draw_landmarks(frame_copy)
 
-                    self.mutex["hands_detection"].update(self.detection)
+                    self.context.update_mutex_value(self.thread_name, self.detection)
                     last_detection_time = current_time
             else:
                 time.sleep(0.01)
