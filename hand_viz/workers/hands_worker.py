@@ -4,7 +4,7 @@ from mediapipe.tasks.python import vision
 
 from workers.worker import YOLOWorker
 
-class HandsThread(YOLOWorker):
+class HandsWorker(YOLOWorker):
     detection = None
 
     def __init__(self, YOLODetector):
@@ -29,7 +29,7 @@ class HandsThread(YOLOWorker):
         while self.context.running:
             current_time = time.time()
             if current_time - last_detection_time >= self.context.frame_time:
-                frame_copy = self.mutex["camera"].get()
+                frame_copy = self.get_current_frame()
                 if frame_copy is not None:
 
                     self.detect_hands(frame_copy)

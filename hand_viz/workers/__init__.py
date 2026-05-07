@@ -1,4 +1,4 @@
 from workers.worker import YOLOWorker
-from workers.camera_thread import CameraThread
-from workers.detection_thread import DetectionThread
-from workers.hands_thread import HandsThread
+from workers.camera_worker import CameraWorker
+from workers.detection_worker import DetectionWorker
+from workers.hands_worker import HandsWorker

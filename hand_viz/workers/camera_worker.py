@@ -3,7 +3,7 @@ import time
 
 from workers.worker import YOLOWorker
 
-class CameraThread(YOLOWorker):
+class CameraWorker(YOLOWorker):
     def run(self):
         cap = cv2.VideoCapture(0)
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
@@ -20,7 +20,7 @@ class CameraThread(YOLOWorker):
                 ret, frame = cap.read()
                 if ret:
                     #PERMITIMOS QUE SOLO UN HILO TRABAJE CON EL FRAME ACTUAL
-                    self.context.mutex["camera"].update(frame.copy())#Copiamos el frame para que solo se trabaje con este
+                    self.context.update_current_frame(frame)
 
                 last_capture_time = current_time
             else:

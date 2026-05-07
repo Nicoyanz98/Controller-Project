@@ -4,7 +4,7 @@ import time
 import os
 
 from utils import MutexValue
-from workers import CameraThread, DetectionThread
+from workers import CameraWorker, DetectionWorker
 
 MODELS_DIR = os.path.join("./models")
 
@@ -26,9 +26,9 @@ class JoystickDetector:
         self.fps = 0
 
         self.workers = {
-            "camera": CameraThread(self), 
-            "controller": DetectionThread(self, f"{MODELS_DIR}/controller_model.pt", "controller", max_stride=1),
-            "hands": DetectionThread(self, f"{MODELS_DIR}/hand_model.pt", "hands", max_stride=1),
+            "camera": CameraWorker(self), 
+            "controller": DetectionWorker(self, f"{MODELS_DIR}/controller_model.pt", "controller", max_stride=1),
+            "hands": DetectionWorker(self, f"{MODELS_DIR}/hand_model.pt", "hands", max_stride=1),
         }
 
         self.threads = []
@@ -97,7 +97,7 @@ class JoystickDetector:
                 last_display_time = current_time
 
                 #Dibujamos el frame actual
-                current_frame = self.mutex["camera"].get()
+                current_frame = self.get_current_frame()
                 if current_frame is not None:
                     display_frame = current_frame.copy()
                     # Detection Boxes
@@ -119,6 +119,13 @@ class JoystickDetector:
         cv2.destroyAllWindows()
         for t in self.threads:
             t.join()
+
+    def get_current_frame(self):
+        return self.mutex["camera"].get()
+    
+    def update_current_frame(self, frame):
+        #Copiamos el frame para que solo se trabaje con este
+        self.mutex["camera"].update(frame.copy())
 
 
 if __name__ == "__main__":

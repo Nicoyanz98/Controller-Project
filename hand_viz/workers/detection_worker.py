@@ -12,7 +12,7 @@ AREA_THRESH = 1.007
 COV_INCREASE = 1.07
 MAX_WAIT_FPS = 30
 
-class DetectionThread(YOLOWorker):
+class DetectionWorker(YOLOWorker):
     tracker = None
     tracks = []
     
@@ -115,7 +115,7 @@ class DetectionThread(YOLOWorker):
 
             #Limitamos FPS en la deteccion
             if current_time - last_detection_time >= self.context.frame_time:
-                current_frame = self.context.mutex["camera"].get()
+                current_frame = self.context.get_current_frame()
 
                 if current_frame is not None:
                     frame_copy = current_frame.copy()
