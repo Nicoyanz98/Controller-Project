@@ -3,37 +3,21 @@ import threading
 import time
 import os
 
-from threads import CameraThread, DetectionThread
+from utils import MutexValue
+from workers import CameraThread, DetectionThread
 
 MODELS_DIR = os.path.join("./models")
 
-class MutexValue():
-    def __init__(self, value=None):
-        self.lock = threading.Lock()
-        self.value = value
-        self.default = value
-
-    def update(self, new_value):
-        with self.lock:
-            self.value = new_value
-
-    def get(self):
-        copy = self.default
-        with self.lock:
-            copy = self.value
-        
-        return copy
-
 class JoystickDetector:
     def __init__(self):
+        self.window_name = "Detector de joystick"
+        self.thread_names = ["camera", "controller", "hands"]
 
         self.running = True
 
-        self.mutex = {
-            "current_frame": MutexValue(),
-            "controller": MutexValue(),
-            "hands": MutexValue()
-        }
+        self.mutex = {}
+        for t in self.thread_names:
+            self.mutex[t] = MutexValue()
 
         self.target_fps = 30  
         self.frame_time = 1.0 / self.target_fps
@@ -41,15 +25,21 @@ class JoystickDetector:
         self.fps_count = 0
         self.fps = 0
 
-        self.threads = {
+        self.workers = {
             "camera": CameraThread(self), 
             "controller": DetectionThread(self, f"{MODELS_DIR}/controller_model.pt", "controller", max_stride=1),
             "hands": DetectionThread(self, f"{MODELS_DIR}/hand_model.pt", "hands", max_stride=1),
         }
 
-        self.start_thread("camera")
-        self.start_thread("controller")
-        self.start_thread("hands")
+        self.threads = []
+        for t in self.thread_names:
+            self.start_thread(t)
+
+    def start_thread(self, name):
+        thread = threading.Thread(target=self.workers[name].run)
+        self.threads.append(thread)
+        # thread.daemon = True
+        thread.start()
 
     def display_boxes(self, display_frame, current_results, class_names):
         if (current_results is not None and current_results.boxes is not None and len(current_results.boxes) > 0):
@@ -68,12 +58,12 @@ class JoystickDetector:
         
     def display_controller(self, display_frame):
         results = self.mutex["controller"].get()
-        self.display_boxes(display_frame, results, self.threads["controller"].model.names)
+        self.display_boxes(display_frame, results, self.workers["controller"].model.names)
     
     def display_hands(self, display_frame):
         results = self.mutex["hands"].get()
         
-        self.display_boxes(display_frame, results, self.threads["hands"].model.names)
+        self.display_boxes(display_frame, results, self.workers["hands"].model.names)
         if results is not None and results.keypoints is not None:
             h, w = results.keypoints.orig_shape
 
@@ -96,11 +86,6 @@ class JoystickDetector:
         
         cv2.putText(display_frame, f"FPS: {self.fps}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
 
-    def start_thread(self, name):
-        thread = threading.Thread(target=self.threads[name].run)
-        thread.daemon = True
-        thread.start()
-
     def run(self):
         self.fps_time = time.time()
         last_display_time = time.time()
@@ -112,7 +97,7 @@ class JoystickDetector:
                 last_display_time = current_time
 
                 #Dibujamos el frame actual
-                current_frame = self.mutex["current_frame"].get()
+                current_frame = self.mutex["camera"].get()
                 if current_frame is not None:
                     display_frame = current_frame.copy()
                     # Detection Boxes
@@ -122,16 +107,18 @@ class JoystickDetector:
                     # FPS
                     self.display_fps(display_frame, current_time)
 
-                    cv2.imshow("Detector de joystick", display_frame)
+                    cv2.imshow(self.window_name, display_frame)
 
             time.sleep(0.001)
 
             key = cv2.waitKey(1) & 0xFF
-            if key == 27:
+            if key in [27, ord('q')]: # Esc keycode is 27
                 self.running = False
                 break
         
         cv2.destroyAllWindows()
+        for t in self.threads:
+            t.join()
 
 
 if __name__ == "__main__":

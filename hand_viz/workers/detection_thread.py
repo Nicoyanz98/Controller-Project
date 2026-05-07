@@ -4,7 +4,7 @@ from ultralytics.engine.results import Results
 import numpy as np
 import torch
 
-from threads import YOLODetectorThread
+from workers.worker import YOLOWorker
 
 MAX_STRIDE = 10
 MOTION_THRESH = 5
@@ -12,7 +12,7 @@ AREA_THRESH = 1.007
 COV_INCREASE = 1.07
 MAX_WAIT_FPS = 30
 
-class DetectionThread(YOLODetectorThread):
+class DetectionThread(YOLOWorker):
     tracker = None
     tracks = []
     
@@ -115,7 +115,7 @@ class DetectionThread(YOLODetectorThread):
 
             #Limitamos FPS en la deteccion
             if current_time - last_detection_time >= self.context.frame_time:
-                current_frame = self.context.mutex["current_frame"].get()
+                current_frame = self.context.mutex["camera"].get()
 
                 if current_frame is not None:
                     frame_copy = current_frame.copy()
