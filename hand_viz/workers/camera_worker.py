@@ -19,10 +19,9 @@ class CameraWorker(YOLOWorker):
             if current_time - last_capture_time >= self.frame_time:
                 ret, frame = cap.read()
                 if ret:
-                    #PERMITIMOS QUE SOLO UN HILO TRABAJE CON EL FRAME ACTUAL
-                    self.context.update_mutex_value(self.thread_name, frame.copy()) #Copiamos el frame para que solo se trabaje con este
+                    self.context.update_mutex_value(self.worker_name, frame.copy()) #Copiamos el frame para que solo se trabaje con este
 
                 last_capture_time = current_time
             else:
-                time.sleep(0.001) #Permite que no consuma todo el nucleo
+                time.sleep(0.001)
         cap.release()

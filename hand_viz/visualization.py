@@ -11,12 +11,12 @@ MODELS_DIR = os.path.join("./models")
 class JoystickDetector:
     def __init__(self):
         self.window_name = "Detector de joystick"
-        self.thread_names = ["camera", "controller", "hands"]
+        self.worker_names = ["camera", "controller", "hands"]
 
         self.running = True
 
         self.mutex = {}
-        for t in self.thread_names:
+        for t in self.worker_names:
             self.mutex[t] = MutexValue()
 
         self.target_fps = 30  
@@ -27,12 +27,12 @@ class JoystickDetector:
 
         self.workers = {
             "camera": CameraWorker(self, self.frame_time), 
-            "controller": DetectionWorker(self, self.frame_time, f"{MODELS_DIR}/controller_model.pt", "controller", max_stride=1),
-            "hands": DetectionWorker(self, self.frame_time, f"{MODELS_DIR}/hand_model.pt", "hands", max_stride=1),
+            "controller": DetectionWorker(self, self.frame_time, "controller", f"{MODELS_DIR}/controller_model.pt", max_stride=1),
+            "hands": DetectionWorker(self, self.frame_time, "hands", f"{MODELS_DIR}/hand_model.pt", max_stride=1),
         }
 
         self.threads = []
-        for t in self.thread_names:
+        for t in self.worker_names:
             self.start_thread(t)
 
     def start_thread(self, name):
@@ -78,8 +78,9 @@ class JoystickDetector:
                         cv2.circle(display_frame, (x, y), 4, (0, 0, 255), -1)
         
     def display_fps(self, display_frame, current_time):
-        self.fps_count += 1 #Contamos los frames
-        if current_time - self.fps_time >= 1.0: #Si paso mas de un segundo, actuazamos el contador
+        self.fps_count += 1
+        # Si paso mas de un segundo, actuazamos el contador
+        if current_time - self.fps_time >= 1.0:
             self.fps = self.fps_count
             self.fps_count = 0
             self.fps_time = current_time
@@ -93,6 +94,7 @@ class JoystickDetector:
         while self.is_running():
             current_time = time.time()
             
+            #Limitamos FPS en la camara
             if current_time - last_display_time >= self.frame_time:
                 last_display_time = current_time
 
