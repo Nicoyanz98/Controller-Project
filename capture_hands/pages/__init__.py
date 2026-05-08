@@ -1,0 +1,2 @@
+from pages.capture_input_menu import CaptureInputMenu
+from pages.main_menu import MainMenu
