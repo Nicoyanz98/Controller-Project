@@ -5,17 +5,23 @@ from functools import partial
 from components import Menu, FlowLayout
 
 class MainMenu(Menu):
+    def __init__(self, window, name, options=[]):
+        self.options = options
+        super().__init__(window, name)
+
     def _create_menu(self):
+        self.window.add_page(self)
+
         self._create_header()
         self.layout.addSpacing(60)
         self._create_options_buttons()
 
     def _create_options_buttons(self):
         buttons_layout = FlowLayout()
-        options = ["LEFT", "RIGHT", "TRIGGERS"]
-        for o in options:
-            self._create_button(o, buttons_layout, partial(self.window.change_menu, o))
-        self._create_button("QUIT", buttons_layout, self.window.close)
+
+        for component, name in self.options:
+            option_index = self.window.add_page(component(self.window, name, self.index))
+            self._create_button(name, buttons_layout, partial(self.window.change_menu, option_index))
 
         self.layout.addLayout(buttons_layout)
 

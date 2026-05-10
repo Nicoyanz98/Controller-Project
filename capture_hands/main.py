@@ -11,17 +11,21 @@ class Window(QWidget):
         self.setWindowTitle("Capture Hands")
         
         self.layout = QVBoxLayout(self)
-        self.pages = QStackedWidget()
+        self.page_widget = QStackedWidget()
 
-        pages = [MainMenu(self, "MAIN"), CaptureInputMenu(self, "LEFT"), CaptureInputMenu(self, "RIGHT")]
-        for page in pages:
-            self.pages.addWidget(page)
+        self.main_menu = MainMenu(self, "MAIN", [(CaptureInputMenu, "LEFT"), (CaptureInputMenu, "RIGHT")])
 
-        self.layout.addWidget(self.pages)
+        self.layout.addWidget(self.page_widget)
     
+    def add_page(self, component):
+        page_index = self.page_widget.count()
+        component.set_index(page_index)
+        self.page_widget.addWidget(component)
+        return page_index
+
     @Slot(str)
     def change_menu(self, page_index):
-        self.pages.setCurrentIndex(page_index)
+        self.page_widget.setCurrentIndex(page_index)
 
 if __name__ == "__main__":
     app = QApplication([])
