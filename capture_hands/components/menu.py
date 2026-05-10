@@ -48,7 +48,8 @@ class Menu(QWidget):
     
     def go_back(self):
         if self.thread:
-            self.thread.stop()
+            for thread in self.thread.values():
+                thread.stop()
         self.image_label.clear()
         self.window.change_menu(self.parent_index)
     

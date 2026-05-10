@@ -6,9 +6,10 @@ class VideoThread(QThread):
     change_pixmap_signal = Signal(QImage)
     error_signal = Signal(str)
 
-    def __init__(self, parent):
+    def __init__(self, parent, name):
         super().__init__(parent)
         self._run_flag = True
+        self.name = name
 
     def run(self):
         cap = cv2.VideoCapture(0)

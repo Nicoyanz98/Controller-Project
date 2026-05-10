@@ -4,6 +4,7 @@ from PySide6.QtWidgets import QLabel, QWidget
 
 NOTIFICATION_COLOR = {
     "error": "background-color: #FFBABA; color: #D8000C;",
+    "success": "background-color: #DFF2BF; color: #4F8A10;",
     "info": "background-color: #D9EDF7; color: #31708F;",
     "warning": "background-color: #FEEFB3; color: #9F6000;",
 }
