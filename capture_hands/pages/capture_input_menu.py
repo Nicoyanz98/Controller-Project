@@ -1,4 +1,4 @@
-from components import Menu, FlowLayout, VideoThread
+from components import Menu, FlowLayout, VideoThread, SideNotification
 
 from PySide6.QtCore import Qt, Slot
 from PySide6.QtGui import QImage, QPixmap
@@ -12,12 +12,6 @@ class CaptureInputMenu(Menu):
         self.layout.addSpacing(60)
         self._create_camera_feed()
         self.layout.addSpacing(20)
-        self._create_back_button()
-
-    def _create_back_button(self):
-        buttons_layout = FlowLayout()
-        self._create_button("BACK", buttons_layout, self.go_back)
-        self.layout.addLayout(buttons_layout)
 
     def _create_camera_feed(self):
         self.image_label = QLabel(self)
@@ -49,16 +43,16 @@ class CaptureInputMenu(Menu):
         qt_img = QPixmap.fromImage(cv_img)
         self.image_label.setPixmap(qt_img)
 
-    def go_back(self):
-        if self.thread:
-            self.thread.stop()
-        self.image_label.clear()
-        self.window.change_menu("MAIN")
-
     def _start_camera_feed(self):
-        self.thread = VideoThread()
+        self.thread = VideoThread(self)
         self.thread.change_pixmap_signal.connect(self.update_image)
+        self.thread.error_signal.connect(self.notify_error)
         self.thread.start()
+    
+    @Slot(str)
+    def notify_error(self, err):
+        SideNotification(self.window, err, "error")
 
-    def show(self):
+    def showEvent(self, event):
+        super().showEvent(event)
         self._start_camera_feed()

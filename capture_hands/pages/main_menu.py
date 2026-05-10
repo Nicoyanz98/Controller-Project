@@ -1,8 +1,8 @@
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QLabel, QPushButton, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QLabel, QVBoxLayout
 from functools import partial
 
-from components import Menu, FlowLayout
+from components import Menu, FlowLayout, SideNotification
 
 class MainMenu(Menu):
     def __init__(self, window, name, options=[]):

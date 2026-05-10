@@ -2,10 +2,16 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QFontMetrics
 from PySide6.QtWidgets import QLabel, QWidget
 
+NOTIFICATION_COLOR = {
+    "error": "background-color: #FFBABA; color: #D8000C;",
+    "info": "background-color: #D9EDF7; color: #31708F;",
+    "warning": "background-color: #FEEFB3; color: #9F6000;",
+}
+
 class SideNotification(QWidget):
-    def __init__(self, parent, message):
+    def __init__(self, parent, message, type):
         super().__init__(parent)
-        self.setStyleSheet("background-color: #919191; color: white; border-radius: 5px; padding: 10px;")
+        self.setStyleSheet(f"{NOTIFICATION_COLOR[type]} border-radius: 5px; padding: 10px;")
 
         self.notification = QLabel(message, self)
 
@@ -24,5 +30,4 @@ class SideNotification(QWidget):
 
     def update_position(self):
         if self.parentWidget():
-            p_height = self.parentWidget().height()
             self.move(20, 20)
