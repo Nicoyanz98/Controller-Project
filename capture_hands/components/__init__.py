@@ -1,7 +1,4 @@
-from components.flow_layout import FlowLayout
-from components.menu import Menu
-from components.video_thread import VideoThread
-from components.side_notification import SideNotification
-from components.joystick_thread import JoystickThread
-from components.notification_container import NotificationContainer
-from components.thread_task import Thread_Task
+from components.layout.flow_layout import FlowLayout
+from components.menu import CaptureInputMenu, MainMenu
+from components.tasks import VideoThread, JoystickThread
+from components.notifications import SideNotification, NotificationContainer

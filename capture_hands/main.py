@@ -2,8 +2,7 @@ import sys
 from PySide6.QtCore import Slot
 from PySide6.QtWidgets import QApplication, QStackedWidget, QWidget, QVBoxLayout
 
-from components import SideNotification, NotificationContainer
-from pages import CaptureInputMenu, MainMenu
+from components import NotificationContainer, CaptureInputMenu, MainMenu
 
 class Window(QWidget):
     def __init__(self):

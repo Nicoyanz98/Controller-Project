@@ -1,8 +1,8 @@
 import cv2
-from PySide6.QtCore import QThread, Qt, Signal
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QImage
 
-from components import Thread_Task
+from thread_task import Thread_Task
 
 class VideoThread(Thread_Task):
     def run(self):

@@ -3,6 +3,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QPushButton, QVBoxLayout, QWidget
 
 from components import FlowLayout
+
 class Menu(QWidget):
     def __init__(self, window, name, parent_index=None):
         super().__init__()

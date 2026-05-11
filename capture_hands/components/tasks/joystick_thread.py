@@ -1,6 +1,5 @@
 import pygame
-from PySide6.QtCore import QThread, Signal
-from components import Thread_Task
+from thread_task import Thread_Task
 
 class JoystickButtonMap():
     def __init__(self, is_xbox_type=False):
