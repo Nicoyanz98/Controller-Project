@@ -3,6 +3,7 @@ from PySide6.QtCore import Slot
 from PySide6.QtWidgets import QApplication, QStackedWidget, QWidget, QVBoxLayout
 
 from components import NotificationContainer, CaptureInputMenu, MainMenu
+from collector import JoystickLeftButtonMap, JoystickRightButtonMap, JoystickTriggersButtonMap
 
 class Window(QWidget):
     def __init__(self):
@@ -12,7 +13,15 @@ class Window(QWidget):
         self.layout = QVBoxLayout(self)
         self.page_widget = QStackedWidget()
 
-        self.main_menu = MainMenu(self, "MAIN", [(CaptureInputMenu, "LEFT"), (CaptureInputMenu, "RIGHT")])
+        self.main_menu = MainMenu(self, "MAIN")
+        self.add_page(self.main_menu)
+        
+        options = [
+            CaptureInputMenu(self, "LEFT", JoystickLeftButtonMap()), 
+            CaptureInputMenu(self, "RIGHT", JoystickRightButtonMap()),
+            CaptureInputMenu(self, "TRIGGERS", JoystickTriggersButtonMap())
+        ]
+        self.main_menu.create_options_buttons(options)
 
         self.layout.addWidget(self.page_widget)
 

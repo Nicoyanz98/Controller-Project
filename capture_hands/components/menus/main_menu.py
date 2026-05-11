@@ -2,29 +2,24 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QLabel, QVBoxLayout
 from functools import partial
 
-from menu import Menu
+from .menu import Menu
 from components import FlowLayout
 
 class MainMenu(Menu):
-    def __init__(self, window, name, options=[]):
-        self.options = options
-        super().__init__(window, name)
-
     def _create_menu(self):
-        self.window.add_page(self)
-
         self._create_header()
         self.layout.addSpacing(60)
-        self._create_options_buttons()
+        # self._create_options_buttons()
 
-    def _create_options_buttons(self):
+    def create_options_buttons(self, options):
         buttons_layout = FlowLayout()
 
-        for component, name in self.options:
-            option_index = self.window.add_page(component(self.window, name, self.index))
-            self._create_button(name, buttons_layout, partial(self.window.change_menu, option_index))
+        for component in options:
+            option_index = self.window.add_page(component)
+            component.set_back_index(self.index)
+            self._create_button(component.get_name(), buttons_layout, partial(self.window.change_menu, option_index))
 
-        self.layout.addLayout(buttons_layout)
+        self.layout.insertLayout(4, buttons_layout)
 
     def _create_header(self):
         self.setStyleSheet("""

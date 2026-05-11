@@ -1,4 +1,4 @@
-from menu import Menu
+from .menu import Menu
 from components import VideoThread, JoystickThread
 
 from PySide6.QtCore import Qt, Slot
@@ -6,6 +6,10 @@ from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import QLabel, QVBoxLayout
 
 class CaptureInputMenu(Menu):
+    def __init__(self, window, name, button_map, back_index=None):
+        self.button_region = button_map
+        super().__init__(window, name, back_index)
+
     def _create_menu(self):
         self.thread_tasks = {}
         
@@ -39,10 +43,12 @@ class CaptureInputMenu(Menu):
 
         self.layout.addLayout(header_layout)
 
-    def _start_thread_task(self, task, name):
-        self.thread_tasks[name] = task(self, name)
-        task.change_pixmap_signal.connect(self.update_image)
+    def _start_thread_task(self, task, image_update=False):
+        self.thread_tasks[task.name] = task
+        if image_update:
+            task.change_pixmap_signal.connect(self.update_image)
         task.error_signal.connect(self.notify_error)
+        task.success_signal.connect(self.notify_success)
         task.start()
 
     @Slot(QImage)
@@ -60,5 +66,5 @@ class CaptureInputMenu(Menu):
 
     def showEvent(self, event):
         super().showEvent(event)
-        self._start_thread_task(VideoThread, "camera")
-        self._start_thread_task(JoystickThread, "joystick")
+        self._start_thread_task(VideoThread(self, "camera"), image_update=True)
+        self._start_thread_task(JoystickThread(self, "joystick", self.button_region))

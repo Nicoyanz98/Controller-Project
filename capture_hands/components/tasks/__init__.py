@@ -1,2 +1,2 @@
-from joystick_thread import JoystickThread
-from video_thread import VideoThread
+from components.tasks.joystick_thread import JoystickThread
+from components.tasks.video_thread import VideoThread

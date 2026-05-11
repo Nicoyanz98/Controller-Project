@@ -1,50 +1,11 @@
 import pygame
-from thread_task import Thread_Task
-
-class JoystickButtonMap():
-    def __init__(self, is_xbox_type=False):
-        # (x,y) coordinates
-        self.axis = {
-            "stick_left": (0, 1),
-            "stick_right": (3, 4) if is_xbox_type else (2, 3),
-            "trigger_L": 2 if is_xbox_type else 4,
-            "trigger_R": 5,
-        }
-
-        self.button_number = {
-            "button_A": 0,     # A (Xbox) / X (PlayStation)
-            "button_B": 1,     # B (Xbox) / Circle (PlayStation)
-            "button_X": 2,     # X (Xbox) / Square (PlayStation)
-            "button_Y": 3,     # Y (Xbox) / Triangle (PlayStation)
-            "bumper_L": 4,     # LB (Xbox) / L1 (PlayStation)
-            "bumper_R": 5,     # RB (Xbox) / R1 (PlayStation)
-            "trigger_L": 6,
-            "trigger_R": 7,
-        }
-
-        self.stick_directions = {
-            (0, 0): "neutral",
-            (1, 0): "right",
-            (-1, 0): "left", 
-            (0, -1): "up",     
-            (0, 1): "down",    
-            (1, -1): "up_right",
-            (-1, -1): "up_left",
-            (1, 1): "down_right",
-            (-1, 1): "down_left"
-        }
-
-        self.dpad_direction = {
-            (0, 1): 'up',
-            (0, -1): 'down',
-            (-1, 0): 'left',
-            (1, 0): 'right',
-        }
+from components.tasks.thread_task import Thread_Task
 
 class JoystickThread(Thread_Task):
-    def __init__(self, parent, name):
+    def __init__(self, parent, name, buttons_map):
         super().__init__(parent, name)
         pygame.init()
+        self.buttons_map = buttons_map
 
     def run(self):
         self._init_joystick()
@@ -57,7 +18,7 @@ class JoystickThread(Thread_Task):
             self.joystick = pygame.joystick.Joystick(0)
             self.joystick.init()
             name = self.joystick.get_name()
-            self.buttons_map = JoystickButtonMap(is_xbox_type=("xbox" in name.lower()))
+            self.buttons_map.init_map(is_xbox_type=("xbox" in name.lower()))
 
             self.success_signal.emit(f"Joystick conectado: {name}")
         else:

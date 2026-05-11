@@ -1,7 +1,7 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget, QVBoxLayout
 
-from side_notification import SideNotification
+from components.notifications.side_notification import SideNotification
 
 class NotificationContainer(QWidget):
     def __init__(self, parent=None):

@@ -1,0 +1,2 @@
+from components.menus.main_menu import MainMenu
+from components.menus.capture_input_menu import CaptureInputMenu

@@ -1,2 +1,0 @@
-from main_menu import MainMenu
-from capture_input_menu import CaptureInputMenu

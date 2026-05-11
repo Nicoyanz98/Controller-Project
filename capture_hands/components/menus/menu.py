@@ -5,12 +5,12 @@ from PySide6.QtWidgets import QPushButton, QVBoxLayout, QWidget
 from components import FlowLayout
 
 class Menu(QWidget):
-    def __init__(self, window, name, parent_index=None):
+    def __init__(self, window, name, back_index=None):
         super().__init__()
 
         self.window = window
         self.name = name
-        self.parent_index = parent_index
+        self.set_back_index(back_index)
 
         self.layout = QVBoxLayout(self)
         self.layout.setSpacing(0)
@@ -22,6 +22,15 @@ class Menu(QWidget):
         self._create_extra_button()
         self.layout.addStretch()
 
+    def get_name(self):
+        return self.name
+    
+    def set_back_index(self, back_index):
+        self.back_index = back_index
+    
+    def set_index(self, index):
+        self.index = index
+
     @abstractmethod
     def _create_menu(self):
         pass
@@ -32,14 +41,11 @@ class Menu(QWidget):
 
     def _create_extra_button(self):
         extra_button_layout = FlowLayout()
-        if self.parent_index is not None:
+        if self.back_index is not None:
             self._create_button("BACK", extra_button_layout, self.go_back)
         else:
             self._create_button("QUIT", extra_button_layout, self.window.close)
         self.layout.addLayout(extra_button_layout)
-
-    def set_index(self, index):
-        self.index = index
     
     def _create_button(self, text, layout, func):
         button = QPushButton(text)
@@ -52,7 +58,7 @@ class Menu(QWidget):
             for task in self.thread_tasks.values():
                 task.stop()
         self.image_label.clear()
-        self.window.change_menu(self.parent_index)
+        self.window.change_menu(self.back_index)
     
     def _create_back_button(self, layout):
         self._create_button("BACK", layout, self.go_back)

@@ -1,0 +1,1 @@
+from collector.joystick_button_map import JoystickLeftButtonMap, JoystickRightButtonMap, JoystickTriggersButtonMap

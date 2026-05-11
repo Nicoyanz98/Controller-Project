@@ -1,10 +1,12 @@
 import cv2
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QImage
 
-from thread_task import Thread_Task
+from components.tasks.thread_task import Thread_Task
 
 class VideoThread(Thread_Task):
+    change_pixmap_signal = Signal(QImage)
+
     def run(self):
         cap = cv2.VideoCapture(0)
 
