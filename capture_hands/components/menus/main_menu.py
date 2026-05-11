@@ -9,7 +9,6 @@ class MainMenu(Menu):
     def _create_menu(self):
         self._create_header()
         self.layout.addSpacing(60)
-        # self._create_options_buttons()
 
     def create_options_buttons(self, options):
         buttons_layout = FlowLayout()

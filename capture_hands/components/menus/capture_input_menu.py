@@ -1,5 +1,7 @@
+from functools import partial
+
 from .menu import Menu
-from components import VideoThread, JoystickThread
+from components import VideoThread, JoystickThread, FlowLayout
 
 from PySide6.QtCore import Qt, Slot
 from PySide6.QtGui import QImage, QPixmap
@@ -7,7 +9,7 @@ from PySide6.QtWidgets import QLabel, QVBoxLayout
 
 class CaptureInputMenu(Menu):
     def __init__(self, window, name, button_map, back_index=None):
-        self.button_region = button_map
+        self.button_map = button_map
         super().__init__(window, name, back_index)
 
     def _create_menu(self):
@@ -17,6 +19,8 @@ class CaptureInputMenu(Menu):
         self.layout.addSpacing(60)
         self._create_camera_feed()
         self.layout.addSpacing(20)
+        # self._create_buttons()
+        # self.layout.addSpacing(20)
 
     def _create_camera_feed(self):
         self.image_label = QLabel(self)
@@ -42,11 +46,19 @@ class CaptureInputMenu(Menu):
         header_layout.addWidget(title)
 
         self.layout.addLayout(header_layout)
+    
+    @Slot()
+    def create_buttons(self):
+        buttons_layout = FlowLayout()
 
-    def _start_thread_task(self, task, image_update=False):
+        for btn_name in self.button_map:
+            self._create_button(btn_name, buttons_layout, partial(print, btn_name))
+
+        self.layout.insertLayout(4, buttons_layout)
+
+    def _start_thread_task(self, task, signal_setting):
         self.thread_tasks[task.name] = task
-        if image_update:
-            task.change_pixmap_signal.connect(self.update_image)
+        signal_setting(task)
         task.error_signal.connect(self.notify_error)
         task.success_signal.connect(self.notify_success)
         task.start()
@@ -66,5 +78,5 @@ class CaptureInputMenu(Menu):
 
     def showEvent(self, event):
         super().showEvent(event)
-        self._start_thread_task(VideoThread(self, "camera"), image_update=True)
-        self._start_thread_task(JoystickThread(self, "joystick", self.button_region))
+        self._start_thread_task(VideoThread(self, "camera"), lambda task: task.change_pixmap_signal.connect(self.update_image))
+        self._start_thread_task(JoystickThread(self, "joystick", self.button_map), lambda task: task.buttons_intialized.connect(self.create_buttons))

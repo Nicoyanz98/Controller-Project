@@ -1,7 +1,10 @@
 import pygame
 from components.tasks.thread_task import Thread_Task
+from PySide6.QtCore import Signal
 
 class JoystickThread(Thread_Task):
+    buttons_intialized = Signal()
+
     def __init__(self, parent, name, buttons_map):
         super().__init__(parent, name)
         pygame.init()
@@ -19,6 +22,7 @@ class JoystickThread(Thread_Task):
             self.joystick.init()
             name = self.joystick.get_name()
             self.buttons_map.init_map(is_xbox_type=("xbox" in name.lower()))
+            self.buttons_intialized.emit()
 
             self.success_signal.emit(f"Joystick conectado: {name}")
         else:

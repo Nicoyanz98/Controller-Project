@@ -1,4 +1,12 @@
+import itertools
+
 class JoystickButtonMap():
+    def __init__(self):
+        self.buttons = {}
+        self.axis = {}
+        self.stick_direction = {}
+        self.dpad_direction = {}
+
     def init_stick_directions(self):
         self.stick_direction = {
             (0, 0): "neutral",
@@ -12,9 +20,13 @@ class JoystickButtonMap():
             (-1, 1): "down_left"
         }
     
+    def __iter__(self):
+        sticks = ["stick_" + direction for direction in self.stick_direction.values()]
+        dpads = ["dpad_" + direction for direction in self.dpad_direction.values()]
+        return itertools.chain(self.buttons.keys(), sticks, dpads)
 class JoystickLeftButtonMap(JoystickButtonMap):
     def init_map(self, is_xbox_type=False):
-        super().__init__()
+        self.init_stick_directions()
         self.axis = {"stick": (0, 1)}
         self.buttons = {
             "button_A": 0,     # A (Xbox) / X (PlayStation)
@@ -25,7 +37,7 @@ class JoystickLeftButtonMap(JoystickButtonMap):
 
 class JoystickRightButtonMap(JoystickButtonMap):
     def init_map(self, is_xbox_type=False):
-        super().__init__()
+        self.init_stick_directions()
         self.axis = {"stick": (3, 4) if is_xbox_type else (2, 3)}
         self.dpad_direction = {
             (0, 1): 'up',
