@@ -2,15 +2,9 @@ import cv2
 from PySide6.QtCore import QThread, Qt, Signal
 from PySide6.QtGui import QImage
 
-class VideoThread(QThread):
-    change_pixmap_signal = Signal(QImage)
-    error_signal = Signal(str)
+from components import Thread_Task
 
-    def __init__(self, parent, name):
-        super().__init__(parent)
-        self._run_flag = True
-        self.name = name
-
+class VideoThread(Thread_Task):
     def run(self):
         cap = cv2.VideoCapture(0)
 
@@ -18,6 +12,7 @@ class VideoThread(QThread):
             self.error_signal.emit("No camera connected")
             return
         
+        self.success_signal.emit("Camera connected")
         try:
             while self._run_flag:
                 ret, frame = cap.read()
@@ -35,7 +30,3 @@ class VideoThread(QThread):
             self.error_signal.emit(str(e))
         finally:
             cap.release()
-
-    def stop(self):
-        self._run_flag = False
-        self.wait()

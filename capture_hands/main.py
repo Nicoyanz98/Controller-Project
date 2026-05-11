@@ -2,7 +2,7 @@ import sys
 from PySide6.QtCore import Slot
 from PySide6.QtWidgets import QApplication, QStackedWidget, QWidget, QVBoxLayout
 
-from components import SideNotification
+from components import SideNotification, NotificationContainer
 from pages import CaptureInputMenu, MainMenu
 
 class Window(QWidget):
@@ -16,12 +16,18 @@ class Window(QWidget):
         self.main_menu = MainMenu(self, "MAIN", [(CaptureInputMenu, "LEFT"), (CaptureInputMenu, "RIGHT")])
 
         self.layout.addWidget(self.page_widget)
+
+        self.notifications = NotificationContainer(self)
+        self.notifications.show()
     
     def add_page(self, component):
         page_index = self.page_widget.count()
         component.set_index(page_index)
         self.page_widget.addWidget(component)
         return page_index
+    
+    def notify(self, msg, type):
+        self.notifications.add_notification(msg, type)
 
     @Slot(str)
     def change_menu(self, page_index):

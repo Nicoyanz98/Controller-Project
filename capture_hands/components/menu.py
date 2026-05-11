@@ -47,9 +47,9 @@ class Menu(QWidget):
         layout.addWidget(button)
     
     def go_back(self):
-        if self.thread:
-            for thread in self.thread.values():
-                thread.stop()
+        if self.thread_tasks:
+            for task in self.thread_tasks.values():
+                task.stop()
         self.image_label.clear()
         self.window.change_menu(self.parent_index)
     

@@ -1,5 +1,6 @@
 import pygame
 from PySide6.QtCore import QThread, Signal
+from components import Thread_Task
 
 class JoystickButtonMap():
     def __init__(self, is_xbox_type=False):
@@ -41,14 +42,9 @@ class JoystickButtonMap():
             (1, 0): 'right',
         }
 
-class JoystickThread(QThread):
-    error_signal = Signal(str)
-    success_signal = Signal(str)
-
+class JoystickThread(Thread_Task):
     def __init__(self, parent, name):
-        super().__init__(parent)
-        self._run_flag = True
-        self.name = name
+        super().__init__(parent, name)
         pygame.init()
 
     def run(self):
@@ -56,10 +52,6 @@ class JoystickThread(QThread):
         # Hear inputs after being allowed to hear them (timed with the image capture)
         # Save input with current video thread image (use parent as middle-man)
 
-    def stop(self):
-        self._run_flag = False
-        self.wait()
-    
     def _init_joystick(self):
         pygame.joystick.init()
         if pygame.joystick.get_count() > 0:

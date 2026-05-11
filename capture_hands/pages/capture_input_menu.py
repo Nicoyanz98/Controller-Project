@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QLabel, QVBoxLayout
 
 class CaptureInputMenu(Menu):
     def _create_menu(self):
-        self.thread = {}
+        self.thread_tasks = {}
         
         self._create_header()
         self.layout.addSpacing(60)
@@ -38,37 +38,26 @@ class CaptureInputMenu(Menu):
 
         self.layout.addLayout(header_layout)
 
+    def _start_thread_task(self, task, name):
+        self.thread_tasks[name] = task(self, name)
+        task.change_pixmap_signal.connect(self.update_image)
+        task.error_signal.connect(self.notify_error)
+        task.start()
+
     @Slot(QImage)
     def update_image(self, cv_img):
         qt_img = QPixmap.fromImage(cv_img)
         self.image_label.setPixmap(qt_img)
-
-    def _start_camera_feed(self):
-        thread_name = "camera"
-        self.thread[thread_name] = VideoThread(self, thread_name)
-        self.thread[thread_name].change_pixmap_signal.connect(self.update_image)
-        self.thread[thread_name].error_signal.connect(self.notify_error)
-        self.thread[thread_name].start()
-    
-    def _start_joystick_handler(self):
-        thread_name = "joystick"
-        self.thread[thread_name] = JoystickThread(self, thread_name)
-        self.thread[thread_name].error_signal.connect(self.notify_error)
-        self.thread[thread_name].success_signal.connect(self.notify_success)
-        self.thread[thread_name].start()
     
     @Slot(str)
     def notify_error(self, msg):
-        self.notify(msg, "error")
+        self.window.notify(msg, "error")
 
     @Slot(str)
     def notify_success(self, msg):
-        self.notify(msg, "success")
-
-    def notify(self, msg, type):
-        SideNotification(self.window, msg, type)
+        self.window.notify(msg, "success")
 
     def showEvent(self, event):
         super().showEvent(event)
-        self._start_joystick_handler()
-        self._start_camera_feed()
+        self._start_thread_task(VideoThread, "camera")
+        self._start_thread_task(JoystickThread, "joystick")
