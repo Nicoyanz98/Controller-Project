@@ -21,8 +21,8 @@ class NotificationContainer(QWidget):
         
         self.show()
 
-    def add_notification(self, message, type):
-        notification = SideNotification(message, type)
+    def add_notification(self, message, type, secs):
+        notification = SideNotification(message, type, secs)
 
         self.layout.addWidget(notification)
 

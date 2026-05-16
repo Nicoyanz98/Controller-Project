@@ -5,12 +5,14 @@ from PySide6.QtWidgets import QPushButton, QVBoxLayout, QWidget
 from components import FlowLayout
 
 class Menu(QWidget):
-    def __init__(self, window, name, back_index=None):
+    def __init__(self, window, name, back):
         super().__init__()
 
         self.window = window
         self.name = name
-        self.set_back_index(back_index)
+        self.back = back
+
+        self.set_index(None)
 
         self.layout = QVBoxLayout(self)
         self.layout.setSpacing(0)
@@ -18,7 +20,7 @@ class Menu(QWidget):
 
         self.layout.addStretch()
         self._create_menu()
-        self.layout.addSpacing(40)
+        self.layout.addSpacing(20)
         self._create_extra_button()
         self.layout.addStretch()
 
@@ -30,6 +32,9 @@ class Menu(QWidget):
     
     def set_index(self, index):
         self.index = index
+    
+    def get_index(self):
+        return self.index
 
     @abstractmethod
     def _create_menu(self):
@@ -41,7 +46,7 @@ class Menu(QWidget):
 
     def _create_extra_button(self):
         extra_button_layout = FlowLayout()
-        if self.back_index is not None:
+        if self.back:
             self._create_button("BACK", extra_button_layout, self.go_back)
         else:
             self._create_button("QUIT", extra_button_layout, self.window.close)
@@ -50,15 +55,17 @@ class Menu(QWidget):
     def _create_button(self, text, layout, func):
         button = QPushButton(text)
         button.clicked.connect(func)
-        button.setMinimumSize(140, 60)
+        button.setMinimumSize(100, 60)
+        button.setStyleSheet("font-size: 20px")
         layout.addWidget(button)
+        return button
     
     def go_back(self):
         if self.thread_tasks:
             for task in self.thread_tasks.values():
                 task.stop()
         self.image_label.clear()
-        self.window.change_menu(self.back_index)
+        self.window.go_back()
     
     def _create_back_button(self, layout):
         self._create_button("BACK", layout, self.go_back)

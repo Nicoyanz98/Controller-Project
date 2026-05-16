@@ -6,19 +6,23 @@ from .menu import Menu
 from components import FlowLayout
 
 class MainMenu(Menu):
+    def __init__(self, window, name, options=[], back=False):
+        self.options = options
+        super().__init__(window, name, back)
+
     def _create_menu(self):
         self._create_header()
         self.layout.addSpacing(60)
+        self.create_options_buttons()
 
-    def create_options_buttons(self, options):
+    def create_options_buttons(self):
         buttons_layout = FlowLayout()
 
-        for component in options:
+        for component in self.options:
             option_index = self.window.add_page(component)
-            component.set_back_index(self.index)
             self._create_button(component.get_name(), buttons_layout, partial(self.window.change_menu, option_index))
 
-        self.layout.insertLayout(4, buttons_layout)
+        self.layout.addLayout(buttons_layout)
 
     def _create_header(self):
         self.setStyleSheet("""

@@ -9,7 +9,7 @@ NOTIFICATION_COLOR = {
 }
 
 class SideNotification(QWidget):
-    def __init__(self, message, type):
+    def __init__(self, message, type, secs):
         super().__init__()
 
         bg_color, text_color = NOTIFICATION_COLOR[type]
@@ -30,4 +30,4 @@ class SideNotification(QWidget):
 
         layout.addWidget(label)
 
-        QTimer.singleShot(3000, self.close)
+        QTimer.singleShot(secs * 1000, self.close)
