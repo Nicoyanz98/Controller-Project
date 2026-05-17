@@ -3,13 +3,15 @@ from functools import partial
 from .menu import Menu
 from components import VideoThread, JoystickThread, FlowLayout
 
-from PySide6.QtCore import Qt, Slot
+from PySide6.QtCore import Qt, Slot, QTimer
 from PySide6.QtGui import QImage, QPixmap
-from PySide6.QtWidgets import QLabel, QVBoxLayout
+from PySide6.QtWidgets import QLabel, QVBoxLayout, QButtonGroup
 
 class CaptureInputMenu(Menu):
     def __init__(self, window, name, button_map, back=True):
         self.button_map = button_map
+        self.button_selector = None
+        self.timer = None
         self.initialized_buttons = False
         super().__init__(window, name, back)
 
@@ -47,17 +49,37 @@ class CaptureInputMenu(Menu):
         self.layout.addLayout(header_layout)
     
     @Slot()
-    def create_buttons(self):
+    def create_input_buttons(self):
         if not self.initialized_buttons:
             layoutIndex = 5
+            self.button_selector = QButtonGroup()
+            self.button_selector.setExclusive(False)
             input_sections = [self.button_map.get_buttons(), self.button_map.get_sticks(), self.button_map.get_dpads()]
             for i, input_section in enumerate(input_sections):
                 buttons_layout = FlowLayout()
                 for btn_text, btn_name, value in input_section:
-                    self._create_button(btn_text, buttons_layout, partial(print, btn_name))
+                    button = self._create_button(btn_text, buttons_layout, partial(self.toggle_timer_for, btn_name, value), toggle=True)
+                    self.button_selector.addButton(button)
                 self.layout.insertLayout(layoutIndex + i, buttons_layout)
             
+            self.button_selector.buttonToggled.connect(self.change_button_state)
             self.initialized_buttons = True
+
+    def change_button_state(self, button, checked):
+        for btn in self.button_selector.buttons():
+            if btn is not button:
+                btn.setEnabled(not checked)
+
+    def toggle_timer_for(self, input_name, axis, start):
+        if start:
+            self.notify_warning(f"Capturing {input_name.replace('_', ' ')}")
+            self.timer = QTimer()
+            self.timer.timeout.connect(partial(print, input_name))
+            self.timer.start(4000)
+        else:
+            if self.timer and self.timer.isActive():
+                self.timer.stop()
+            self.timer = None
 
     def _start_thread_task(self, task, signal_setting):
         self.thread_tasks[task.name] = task
@@ -71,6 +93,9 @@ class CaptureInputMenu(Menu):
         qt_img = QPixmap.fromImage(cv_img)
         self.image_label.setPixmap(qt_img)
     
+    def notify_warning(self, msg):
+        self.window.notify(msg, "warning", 2)
+
     @Slot(str)
     def notify_error(self, msg):
         self.window.notify(msg, "error", 2)
@@ -82,4 +107,4 @@ class CaptureInputMenu(Menu):
     def showEvent(self, event):
         super().showEvent(event)
         self._start_thread_task(VideoThread(self, "camera"), lambda task: task.change_pixmap_signal.connect(self.update_image))
-        self._start_thread_task(JoystickThread(self, "joystick", self.button_map), lambda task: task.buttons_intialized.connect(self.create_buttons))
+        self._start_thread_task(JoystickThread(self, "joystick", self.button_map), lambda task: task.buttons_intialized.connect(self.create_input_buttons))

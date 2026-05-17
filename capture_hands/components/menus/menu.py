@@ -52,11 +52,20 @@ class Menu(QWidget):
             self._create_button("QUIT", extra_button_layout, self.window.close)
         self.layout.addLayout(extra_button_layout)
     
-    def _create_button(self, text, layout, func):
+    def _create_button(self, text, layout, func=None, toggle=False):
         button = QPushButton(text)
-        button.clicked.connect(func)
         button.setMinimumSize(100, 60)
         button.setStyleSheet("font-size: 20px")
+        
+        if toggle:
+            button.setCheckable(True)
+        
+        if func is not None:
+            if toggle:
+                button.toggled.connect(func)
+            else:
+                button.clicked.connect(func)
+
         layout.addWidget(button)
         return button
     
