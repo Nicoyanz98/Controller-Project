@@ -19,5 +19,6 @@ class VideoThread(Thread_Task):
                 cv2_frame = self.window.get_camera_frame()
                 qt_frame = self._convert_rgb_image_to_qt_image(cv2_frame)
                 self.change_pixmap_signal.emit(qt_frame)
+                self.msleep(2)
         except Exception as e:
             self.error_signal.emit(str(e))

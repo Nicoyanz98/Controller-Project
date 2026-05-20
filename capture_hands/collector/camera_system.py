@@ -37,17 +37,21 @@ class CameraSystem():
         try:
             os.makedirs(capture_dir, exist_ok=True)
             pic_count = len([pic for pic in os.listdir(capture_dir) if pic.endswith('.jpg')])
+            print(pic_count)
 
             timestamp = time.strftime("%Y%m%d_%H%M%S")
-            filename = f"{capture_dir}/{pic_count}_{capture_dir}_{timestamp}.jpg"
-            frame = self.get_current_frame()
-            cv2.imwrite(filename, frame)
-
-            capture_msg = f"Frame saved at: {filename}"
-            if "trash" == frame_name:
-                self.window.notify_warning(capture_msg)
+            filename = os.path.join(capture_dir, f"{pic_count}_{frame_name}_{timestamp}.jpg")
+            frame_bgr = cv2.cvtColor(self.get_current_frame(), cv2.COLOR_RGB2BGR)
+            saved = cv2.imwrite(filename, frame_bgr)
+            
+            if saved:
+                capture_msg = f"Frame saved at: {filename}"
+                if "trash" == frame_name:
+                    self.window.notify_warning(capture_msg)
+                else:
+                    self.window.notify_success(capture_msg)
             else:
-                self.window.notify_success(capture_msg)
-
+                self.window.notify_error(f"Failure during saving: cv2.imwrite()")
         except Exception as e:
+            print(e)
             self.window.notify_error(f"Failure during saving: {e}")
