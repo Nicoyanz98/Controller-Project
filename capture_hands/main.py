@@ -12,7 +12,7 @@ class Window(QWidget):
         self._create_window()
 
         self.camera_system = CameraSystem(self, os.path.dirname(os.path.abspath(__file__)))
-        self.joystick_manager = JoystickManager()
+        self.joystick_manager = JoystickManager(self)
 
         main_menu_index = self._create_main_menu()
 
@@ -31,7 +31,7 @@ class Window(QWidget):
     def _create_main_menu(self):
         options = []
         for name in self.joystick_manager.get_map_names():
-            options.append(CaptureInputMenu(self, name, self.joystick_manager.get_button_sections(name)))
+            options.append(CaptureInputMenu(self, name, self.joystick_manager.get_button_sections_for(name)))
         self.main_menu = MainMenu(self, "MAIN", options, False)
         return self.add_page(self.main_menu)
     
@@ -50,8 +50,8 @@ class Window(QWidget):
     def is_expected_input_pressed(self):
         return self.joystick_manager.is_expected_input_pressed()
 
-    def get_current_input(self):
-        self.joystick_manager.check_expected_input()
+    def get_current_input(self, map_name):
+        self.joystick_manager.check_expected_input(map_name)
 
     def get_camera_frame(self):
         return self.camera_system.get_current_frame()

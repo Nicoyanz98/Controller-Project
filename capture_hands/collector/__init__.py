@@ -1,3 +1,4 @@
+from collector.joystick_input import JoystickInput, StickData, DpadData, ButtonData, TriggerData
 from collector.joystick_button_map import JoystickLeftButtonMap, JoystickRightButtonMap, JoystickTriggersButtonMap
 from collector.camera_system import CameraSystem
 from collector.joystick_manager import JoystickManager

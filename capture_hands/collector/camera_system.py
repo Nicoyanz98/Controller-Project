@@ -2,7 +2,7 @@ import cv2, os, time
 
 class CameraSystem():
     def __init__(self, window, dir_path):
-        self.data_dir = dir_path
+        self.data_dir = os.path.join(dir_path, "data")
         self.window = window
         self.camera_connected = self._check_camera_connection()
 
@@ -40,8 +40,8 @@ class CameraSystem():
 
             timestamp = time.strftime("%Y%m%d_%H%M%S")
             filename = f"{capture_dir}/{pic_count}_{capture_dir}_{timestamp}.jpg"
-            frame_bgr = cv2.cvtColor(self.get_current_frame, cv2.COLOR_RGB2BGR)
-            cv2.imwrite(filename, frame_bgr)
+            frame = self.get_current_frame()
+            cv2.imwrite(filename, frame)
 
             capture_msg = f"Frame saved at: {filename}"
             if "trash" == frame_name:

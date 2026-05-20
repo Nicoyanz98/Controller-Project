@@ -112,6 +112,6 @@ class CaptureInputMenu(Menu):
         super().showEvent(event)
         if self.window.is_camera_connected() and self.window.is_joystick_connected():
             self._start_thread_task(VideoThread(self.window, "camera"), lambda task: task.change_pixmap_signal.connect(self.update_image))
-            self._start_thread_task(JoystickThread(self.window, "joystick"))
+            self._start_thread_task(JoystickThread(self.window, "joystick", self.name))
         else:
             self.go_back()

@@ -1,51 +1,16 @@
 import itertools
-from abc import abstractmethod
-
-class JoystickInput():    
-    def __init__(self, name, data, symbol=None):
-        self.name = name
-        self.data = data
-        if symbol:
-            self.symbol = symbol
-        else:
-            self.symbol = name.replace('_', ' ').capitalize()
-    
-    @abstractmethod
-    def resolve_for(self, map):
-        self.data.get_value_for(map)
-
-class JoystickData():
-    def __init__(self, value):
-        self.value = value
-
-    @abstractmethod
-    def get_value_for(self, map):
-        pass
-    
-class StickData(JoystickData):
-    def get_value_for(self, map):
-        map.resolve_stick(self.value)
-
-class ButtonData(JoystickData):
-    def get_value_for(self, map):
-        map.resolve_button(self.value)
-
-class DpadData(JoystickData):
-    def get_value_for(self, map):
-        map.resolve_dpad(self.value)
-
-class TriggerData(JoystickData):
-    def get_value_for(self, map):
-        map.resolve_trigger(self.value)
+from collector import JoystickInput, StickData, DpadData, ButtonData, TriggerData
 
 class JoystickButtonMap():
-    def __init__(self, manager, is_xbox_type=False):
+    def __init__(self, manager):
+        self.controller_type = None
         self.buttons = []
         self.stick = None
+        self.stick_directions = []
         self.dpad_directions = []
         self.manager = manager
 
-        self._init_map(is_xbox_type)
+        self._init_map()
 
     def _init_stick_directions(self):
         self.stick_directions = [
@@ -72,14 +37,17 @@ class JoystickButtonMap():
     def __iter__(self):
         return itertools.chain(self.stick_directions, self.dpad_directions, self.buttons)
 
-    def resolve_input(self, joystick_input):
-        joystick_input.resolve_for(self)
+    def resolve_input(self, joystick_input, controller_type):
+        self.controller_type = controller_type
+        joystick_input.resolve_for(self, controller_type)
+        self.controller_type = None
     
     def resolve_button(self, button_index):
         self.manager.get_button(button_index)
     
     def resolve_stick(self, direction):
-        self.manager.get_stick(self.stick_axis, direction)
+        stick_axis = self.stick_axis[self.controller_type] if isinstance(self.stick_axis, list) else self.stick_axis
+        self.manager.get_stick(stick_axis, direction)
     
     def resolve_dpad(self, direction):
         self.manager.get_dpad(direction)
@@ -88,7 +56,7 @@ class JoystickButtonMap():
         self.manager.get_trigger(axis)
 
 class JoystickLeftButtonMap(JoystickButtonMap):
-    def _init_map(self, is_xbox_type=False):
+    def _init_map(self):
         self._init_stick_directions()
         self.stick_axis = (0, 1)
         self.buttons = [
@@ -99,9 +67,9 @@ class JoystickLeftButtonMap(JoystickButtonMap):
         ]
 
 class JoystickRightButtonMap(JoystickButtonMap):
-    def _init_map(self, capture, is_xbox_type=False):
+    def _init_map(self):
         self._init_stick_directions()
-        self.stick_axis = (3, 4) if is_xbox_type else (2, 3)
+        self.stick_axis = [(2, 3), (3, 4)]
         self.dpad_directions = [
             JoystickInput('up', DpadData((0, -1))), 
             JoystickInput('down', DpadData((0, 1))), 
@@ -111,11 +79,11 @@ class JoystickRightButtonMap(JoystickButtonMap):
         ]
 
 class JoystickTriggersButtonMap(JoystickButtonMap):
-    def _init_map(self, capture, is_xbox_type=False):
+    def _init_map(self):
         self.buttons = [
             JoystickInput('L1', ButtonData(4)),     # LB (Xbox) / L1 (PlayStation)
             JoystickInput('R1', ButtonData(5)),     # RB (Xbox) / R1 (PlayStation)
-            JoystickInput("L2", TriggerData(2 if is_xbox_type else 4)),
+            JoystickInput("L2", TriggerData([4, 2])),
             JoystickInput("R2", TriggerData(5))
             # 'L2': 6,
             # 'R2': 7,

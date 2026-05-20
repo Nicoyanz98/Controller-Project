@@ -11,6 +11,12 @@ class JoystickManager():
         self.expected_input = None
         self.pressed_expected_input = False
 
+        self.button_maps = {
+            "LEFT": JoystickLeftButtonMap(self),
+            "RIGHT": JoystickRightButtonMap(self),
+            "TRIGGERS": JoystickTriggersButtonMap(self),
+        }
+
         pygame.joystick.init()
         self.joystick_connected = self._check_joystick_connection()
 
@@ -18,14 +24,9 @@ class JoystickManager():
         if pygame.joystick.get_count() > 0:
             self.joystick = pygame.joystick.Joystick(0)
             self.joystick.init()
-            name = self.joystick.get_name()
 
-            joystick_type = ("xbox" in name.lower())
-            self.button_maps = {
-                "LEFT": JoystickLeftButtonMap(self, joystick_type),
-                "RIGHT": JoystickRightButtonMap(self, joystick_type),
-                "TRIGGERS": JoystickTriggersButtonMap(self, joystick_type),
-            }
+            name = self.joystick.get_name()
+            self.joystick_type = 1 if "xbox" in name.lower() else 0
 
             self.window.notify_success(f"Joystick connected: {name}")
             return True
@@ -49,13 +50,13 @@ class JoystickManager():
         self.joystick_connected = self._check_joystick_connection()
         return self.joystick_connected
 
-    def check_expected_input(self):
+    def check_expected_input(self, map_name):
         pygame.event.pump()
-        if self.expected_input:
-            self._check_active_input()
+        if self.expected_input and (button_map := self.button_maps.get(map_name, None)) is not None:
+            self._check_active_input(button_map)
 
-    def _check_active_input(self):
-        self.buttons_map.resolve_input(self.expected_input)
+    def _check_active_input(self, button_map):
+        button_map.resolve_input(self.expected_input, self.joystick_type)
 
     def get_button(self, button_index):
         self.pressed_expected_input = self.joystick.get_button(button_index)
