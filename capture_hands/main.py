@@ -1,4 +1,4 @@
-import sys
+import sys, os
 from PySide6.QtCore import Slot
 from PySide6.QtWidgets import QApplication, QStackedWidget, QWidget, QVBoxLayout
 
@@ -10,7 +10,7 @@ class Window(QWidget):
         super().__init__()        
         self._create_window()
 
-        self.camera_system = CameraSystem(self)
+        self.camera_system = CameraSystem(self, os.path.dirname(os.path.abspath(__file__)))
 
     def _create_window(self):
         self.setWindowTitle("Capture Hands")

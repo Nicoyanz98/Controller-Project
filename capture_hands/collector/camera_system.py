@@ -1,11 +1,12 @@
-import cv2
+import cv2, os, time
 
 class CameraSystem():
-    def __init__(self, window):
+    def __init__(self, window, dir_path):
+        self.data_dir = dir_path
         self.window = window
-        self.camera_connected = self.check_camera_connection()
+        self.camera_connected = self._check_camera_connection()
 
-    def check_camera_connection(self):
+    def _check_camera_connection(self):
         self.cap = cv2.VideoCapture(0)
 
         if not self.cap.isOpened():
@@ -20,7 +21,7 @@ class CameraSystem():
         self.cap.release()
     
     def is_camera_connected(self):
-        self.camera_connected = self.check_camera_connection()
+        self.camera_connected = self._check_camera_connection()
         return self.camera_connected
 
     def get_current_frame(self):
@@ -31,3 +32,22 @@ class CameraSystem():
             self.camera_connected = False
             raise Exception("Lost camera connection")
         
+    def save_current_frame(self, input_name):
+        capture_dir = os.path.join(self.data_dir, input_name)
+        try:
+            os.makedirs(capture_dir, exist_ok=True)
+            pic_count = len([pic for pic in os.listdir(capture_dir) if pic.endswith('.jpg')])
+
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
+            filename = f"{capture_dir}/{pic_count}_{capture_dir}_{timestamp}.jpg"
+            frame_bgr = cv2.cvtColor(self.get_current_frame, cv2.COLOR_RGB2BGR)
+            cv2.imwrite(filename, frame_bgr)
+
+            capture_msg = f"Frame saved at: {filename}"
+            if "trash" == input_name:
+                self.window.notify_warning(capture_msg)
+            else:
+                self.window.notify_success(capture_msg)
+
+        except Exception as e:
+            self.window.notify_error(f"Failure during saving: {e}")

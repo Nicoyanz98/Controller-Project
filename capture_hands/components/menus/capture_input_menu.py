@@ -11,7 +11,6 @@ class CaptureInputMenu(Menu):
     def __init__(self, window, name, button_map, back=True):
         self.button_map = button_map
         self.button_selector = None
-        self.current_frame = None
         self.timer = None
         self.initialized_buttons = False
         super().__init__(window, name, back)
@@ -86,43 +85,18 @@ class CaptureInputMenu(Menu):
     def _stop_input_capture(self):
         if self.thread_tasks.get("joystick", False):
             self.thread_tasks["joystick"].listen_for(None)
-            
+
         if self.timer and self.timer.isActive():
             self.timer.stop()
         self.timer = None
     
     def capture_input(self, expected_input):
-        #  try:
-        #     # Verificamos que el directorio existe (por si acaso)
-        #     os.makedirs(self.capture_dir, exist_ok=True)
-        
-        #     # Contamos los archivos JPG en el directorio
-        #     pic_count = len([pic for pic in os.listdir(self.capture_dir) if pic.endswith('.jpg')])
-
-        #     timestamp = time.strftime("%Y%m%d_%H%M%S")
-        #     filename = f"{self.capture_dir}/{pic_count}_{self.capture_dir}_{timestamp}.jpg"
-        #     frame_bgr = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
-        #     cv2.imwrite(filename, frame_bgr)
-
-        #     if "basura" in self.capture_dir:
-        #         self.last_capture_status = "trash"
-        #         print(f"Captura enviada a BASURA: {filename}")
-        #     else:
-        #         self.last_capture_status = "success"
-        #         print(f"Captura guardada correctamente: {filename}")
-
-        #     self.last_capture_time = time.time()
-            
-        # except Exception as e:
-        #     print(f"Error en captura automática: {e}")
-
-        # Saving logic
         if self.thread_tasks["joystick"].is_expected_input_pressed():
             # Preserve button name
-            print(f"Input {expected_input.name} pressed")
+            self.window.save_current_input_frame(expected_input.name)
         else:
-            # Considered as "nothing"
-            print("Expected input not pressed")
+            # Considered as "basura"
+            self.window.save_current_input_frame("basura")
 
     def _start_thread_task(self, task, signal_setting):
         self.thread_tasks[task.name] = task
@@ -133,12 +107,10 @@ class CaptureInputMenu(Menu):
 
     def go_back(self):
         self._stop_input_capture()
-        self.current_frame = None
         super().go_back()
 
     @Slot(QImage)
     def update_image(self, cv_img):
-        self.current_frame = cv_img
         qt_img = QPixmap.fromImage(cv_img)
         self.image_label.setPixmap(qt_img)
 
