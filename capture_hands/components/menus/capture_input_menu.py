@@ -11,6 +11,7 @@ class CaptureInputMenu(Menu):
     def __init__(self, window, name, button_map, back=True):
         self.button_map = button_map
         self.button_selector = None
+        self.current_frame = None
         self.timer = None
         self.initialized_buttons = False
         super().__init__(window, name, back)
@@ -72,23 +73,49 @@ class CaptureInputMenu(Menu):
 
     def toggle_timer_for(self, selected_input, start):
         if start:
-            self.notify_warning(f"Started input capture for {selected_input.name}")
+            self.window.notify_warning(f"Started input capture for {selected_input.name}")
             self.timer = QTimer()
             self.timer.timeout.connect(partial(self.capture_input, selected_input))
             
             self.thread_tasks["joystick"].listen_for(selected_input)
             self.timer.start(4000)
         else:
-            self.notify_warning(f"Stopping input capture for {selected_input.name}")
-            self.stop_input_capture()
+            self.window.notify_warning(f"Stopping input capture for {selected_input.name}")
+            self._stop_input_capture()
 
-    def stop_input_capture(self):
-        self.thread_tasks["joystick"].listen_for(None)
+    def _stop_input_capture(self):
+        if self.thread_tasks.get("joystick", False):
+            self.thread_tasks["joystick"].listen_for(None)
+            
         if self.timer and self.timer.isActive():
             self.timer.stop()
         self.timer = None
     
     def capture_input(self, expected_input):
+        #  try:
+        #     # Verificamos que el directorio existe (por si acaso)
+        #     os.makedirs(self.capture_dir, exist_ok=True)
+        
+        #     # Contamos los archivos JPG en el directorio
+        #     pic_count = len([pic for pic in os.listdir(self.capture_dir) if pic.endswith('.jpg')])
+
+        #     timestamp = time.strftime("%Y%m%d_%H%M%S")
+        #     filename = f"{self.capture_dir}/{pic_count}_{self.capture_dir}_{timestamp}.jpg"
+        #     frame_bgr = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
+        #     cv2.imwrite(filename, frame_bgr)
+
+        #     if "basura" in self.capture_dir:
+        #         self.last_capture_status = "trash"
+        #         print(f"Captura enviada a BASURA: {filename}")
+        #     else:
+        #         self.last_capture_status = "success"
+        #         print(f"Captura guardada correctamente: {filename}")
+
+        #     self.last_capture_time = time.time()
+            
+        # except Exception as e:
+        #     print(f"Error en captura automática: {e}")
+
         # Saving logic
         if self.thread_tasks["joystick"].is_expected_input_pressed():
             # Preserve button name
@@ -100,31 +127,25 @@ class CaptureInputMenu(Menu):
     def _start_thread_task(self, task, signal_setting):
         self.thread_tasks[task.name] = task
         signal_setting(task)
-        task.error_signal.connect(self.notify_error)
-        task.success_signal.connect(self.notify_success)
+        task.error_signal.connect(self.window.notify_error)
+        task.success_signal.connect(self.window.notify_success)
         task.start()
 
     def go_back(self):
-        self.stop_input_capture()
+        self._stop_input_capture()
+        self.current_frame = None
         super().go_back()
 
     @Slot(QImage)
     def update_image(self, cv_img):
+        self.current_frame = cv_img
         qt_img = QPixmap.fromImage(cv_img)
         self.image_label.setPixmap(qt_img)
-    
-    def notify_warning(self, msg):
-        self.window.notify(msg, "warning", 2)
-
-    @Slot(str)
-    def notify_error(self, msg):
-        self.window.notify(msg, "error", 2)
-
-    @Slot(str)
-    def notify_success(self, msg):
-        self.window.notify(msg, "success", 2)
 
     def showEvent(self, event):
         super().showEvent(event)
-        self._start_thread_task(VideoThread(self, "camera"), lambda task: task.change_pixmap_signal.connect(self.update_image))
-        self._start_thread_task(JoystickThread(self, "joystick", self.button_map), lambda task: task.buttons_intialized.connect(self.create_input_buttons))
+        if self.window.is_camera_connected():
+            self._start_thread_task(VideoThread(self.window, "camera"), lambda task: task.change_pixmap_signal.connect(self.update_image))
+            self._start_thread_task(JoystickThread(self.window, "joystick", self.button_map), lambda task: task.buttons_intialized.connect(self.create_input_buttons))
+        else:
+            self.go_back()
