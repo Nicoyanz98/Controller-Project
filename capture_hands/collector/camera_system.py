@@ -32,8 +32,8 @@ class CameraSystem():
             self.camera_connected = False
             raise Exception("Lost camera connection")
         
-    def save_current_frame(self, input_name):
-        capture_dir = os.path.join(self.data_dir, input_name)
+    def save_current_frame(self, frame_name):
+        capture_dir = os.path.join(self.data_dir, frame_name)
         try:
             os.makedirs(capture_dir, exist_ok=True)
             pic_count = len([pic for pic in os.listdir(capture_dir) if pic.endswith('.jpg')])
@@ -44,7 +44,7 @@ class CameraSystem():
             cv2.imwrite(filename, frame_bgr)
 
             capture_msg = f"Frame saved at: {filename}"
-            if "trash" == input_name:
+            if "trash" == frame_name:
                 self.window.notify_warning(capture_msg)
             else:
                 self.window.notify_success(capture_msg)

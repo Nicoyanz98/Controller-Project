@@ -8,11 +8,10 @@ from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import QLabel, QVBoxLayout, QButtonGroup
 
 class CaptureInputMenu(Menu):
-    def __init__(self, window, name, button_map, back=True):
-        self.button_map = button_map
+    def __init__(self, window, name, button_sections, back=True):
+        self.button_sections = button_sections
         self.button_selector = None
         self.timer = None
-        self.initialized_buttons = False
         super().__init__(window, name, back)
 
     def _create_menu(self):
@@ -22,6 +21,7 @@ class CaptureInputMenu(Menu):
         self.layout.addSpacing(60)
         self._create_camera_feed()
         self.layout.addSpacing(20)
+        self._create_input_buttons()
 
     def _create_camera_feed(self):
         self.image_label = QLabel(self)
@@ -48,22 +48,17 @@ class CaptureInputMenu(Menu):
 
         self.layout.addLayout(header_layout)
     
-    @Slot()
-    def create_input_buttons(self):
-        if not self.initialized_buttons:
-            layoutIndex = 5
-            self.button_selector = QButtonGroup()
-            self.button_selector.setExclusive(False)
-            input_sections = [self.button_map.get_buttons(), self.button_map.get_sticks(), self.button_map.get_dpads()]
-            for i, input_section in enumerate(input_sections):
-                buttons_layout = FlowLayout()
-                for joystick_input in input_section:
-                    button = self._create_button(joystick_input.symbol, buttons_layout, partial(self.toggle_timer_for, joystick_input), toggle=True)
-                    self.button_selector.addButton(button)
-                self.layout.insertLayout(layoutIndex + i, buttons_layout)
-            
-            self.button_selector.buttonToggled.connect(self.change_button_state)
-            self.initialized_buttons = True
+    def _create_input_buttons(self):
+        self.button_selector = QButtonGroup()
+        self.button_selector.setExclusive(False)
+        for input_section in self.button_sections:
+            buttons_layout = FlowLayout()
+            for joystick_input in input_section:
+                button = self._create_button(joystick_input.symbol, buttons_layout, partial(self.toggle_timer_for, joystick_input), toggle=True)
+                self.button_selector.addButton(button)
+            self.layout.addLayout(buttons_layout)
+        
+        self.button_selector.buttonToggled.connect(self.change_button_state)
 
     def change_button_state(self, button, checked):
         for btn in self.button_selector.buttons():
@@ -76,7 +71,7 @@ class CaptureInputMenu(Menu):
             self.timer = QTimer()
             self.timer.timeout.connect(partial(self.capture_input, selected_input))
             
-            self.thread_tasks["joystick"].listen_for(selected_input)
+            self.window.change_input_expected(selected_input)
             self.timer.start(4000)
         else:
             self.window.notify_warning(f"Stopping input capture for {selected_input.name}")
@@ -84,23 +79,22 @@ class CaptureInputMenu(Menu):
 
     def _stop_input_capture(self):
         if self.thread_tasks.get("joystick", False):
-            self.thread_tasks["joystick"].listen_for(None)
+            self.window.change_input_expected(None)
 
         if self.timer and self.timer.isActive():
             self.timer.stop()
         self.timer = None
     
     def capture_input(self, expected_input):
-        if self.thread_tasks["joystick"].is_expected_input_pressed():
-            # Preserve button name
-            self.window.save_current_input_frame(expected_input.name)
+        if self.window.is_expected_input_pressed():
+            self.window.save_current_input_frame_as(expected_input.name)
         else:
-            # Considered as "basura"
-            self.window.save_current_input_frame("basura")
+            self.window.save_current_input_frame_as("basura")
 
-    def _start_thread_task(self, task, signal_setting):
+    def _start_thread_task(self, task, signal_setting=None):
         self.thread_tasks[task.name] = task
-        signal_setting(task)
+        if signal_setting is not None:
+            signal_setting(task)
         task.error_signal.connect(self.window.notify_error)
         task.success_signal.connect(self.window.notify_success)
         task.start()
@@ -116,8 +110,8 @@ class CaptureInputMenu(Menu):
 
     def showEvent(self, event):
         super().showEvent(event)
-        if self.window.is_camera_connected():
+        if self.window.is_camera_connected() and self.window.is_joystick_connected():
             self._start_thread_task(VideoThread(self.window, "camera"), lambda task: task.change_pixmap_signal.connect(self.update_image))
-            self._start_thread_task(JoystickThread(self.window, "joystick", self.button_map), lambda task: task.buttons_intialized.connect(self.create_input_buttons))
+            self._start_thread_task(JoystickThread(self.window, "joystick"))
         else:
             self.go_back()
