@@ -28,10 +28,10 @@ class JoystickManager():
             name = self.joystick.get_name()
             self.joystick_type = 1 if "xbox" in name.lower() else 0
 
-            self.window.notify_success(f"Joystick connected: {name}")
+            self.window.notify(f"Joystick connected: {name}", "success")
             return True
         
-        self.window.notify_error("No joystick connected")
+        self.window.notify("No joystick connected", "error")
         return False
 
     def listens_for(self, joystick_input):

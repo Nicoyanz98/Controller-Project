@@ -3,7 +3,7 @@ from PySide6.QtCore import Slot
 from PySide6.QtWidgets import QApplication, QStackedWidget, QWidget, QVBoxLayout
 
 from components import NotificationContainer, CaptureInputMenu, MainMenu
-from collector import CameraSystem, JoystickManager, JoystickLeftButtonMap, JoystickRightButtonMap, JoystickTriggersButtonMap
+from collector import CameraSystem, JoystickManager
 
 class Window(QWidget):
     def __init__(self):
@@ -31,7 +31,7 @@ class Window(QWidget):
     def _create_main_menu(self):
         options = []
         for name in self.joystick_manager.get_map_names():
-            options.append(CaptureInputMenu(self, name, self.joystick_manager.get_button_sections_for(name)))
+            options.append(CaptureInputMenu(self, name, self.joystick_manager.get_button_sections_for(name), self.joystick_manager, self.camera_system))
         self.main_menu = MainMenu(self, "MAIN", options, False)
         return self.add_page(self.main_menu)
     
@@ -62,7 +62,7 @@ class Window(QWidget):
     def save_current_input_frame_as(self, frame_name):
         self.camera_system.save_current_frame(frame_name)
 
-    def notify(self, msg, type, secs):
+    def notify(self, msg, type, secs=2):
         self.notifications.add_notification(msg, type, secs)
 
     def go_back(self):
@@ -71,17 +71,6 @@ class Window(QWidget):
     @Slot(str)
     def change_menu(self, page_index):
         self.page_widget.setCurrentIndex(page_index)
-
-    @Slot(str)
-    def notify_error(self, msg):
-        self.notify(msg, "error", 2)
-
-    @Slot(str)
-    def notify_success(self, msg):
-        self.notify(msg, "success", 2)
-    
-    def notify_warning(self, msg):
-        self.notify(msg, "warning", 2)
     
     def closeEvent(self, event):
         self.camera_system.close()

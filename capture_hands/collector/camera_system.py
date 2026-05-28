@@ -10,10 +10,10 @@ class CameraSystem():
         self.cap = cv2.VideoCapture(0)
 
         if not self.cap.isOpened():
-            self.window.notify_error("No camera connected")
+            self.window.notify("No camera connected", "error")
             return False
             
-        self.window.notify_success("Camera connected")
+        self.window.notify("Camera connected", "success")
         return True
     
     def close(self):
@@ -47,11 +47,11 @@ class CameraSystem():
             if saved:
                 capture_msg = f"Frame saved at: {os.path.join(os.path.basename(capture_dir), filename)}"
                 if "trash" == frame_name:
-                    self.window.notify_warning(capture_msg)
+                    self.window.notify(capture_msg, "warning")
                 else:
-                    self.window.notify_success(capture_msg)
+                    self.window.notify(capture_msg, "success")
             else:
-                self.window.notify_error(f"Failure during saving: cv2.imwrite()")
+                self.window.notify(f"Failure during saving: cv2.imwrite()", "error")
         except Exception as e:
             print(e)
-            self.window.notify_error(f"Failure during saving: {e}")
+            self.window.notify(f"Failure during saving: {e}", "error")

@@ -8,8 +8,11 @@ from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtWidgets import QLabel, QVBoxLayout, QButtonGroup
 
 class CaptureInputMenu(Menu):
-    def __init__(self, window, name, button_sections, back=True):
+    def __init__(self, window, name, button_sections, joystick_manager, camera_system, back=True):
+        self.joystick_manager = joystick_manager
+        self.camera_system = camera_system
         self.button_sections = button_sections
+        
         self.button_selector = None
         self.timer = None
         super().__init__(window, name, back)
@@ -67,41 +70,52 @@ class CaptureInputMenu(Menu):
 
     def toggle_timer_for(self, selected_input, start):
         if start:
-            self.window.notify_warning(f"Started input capture for {selected_input.name}")
+            self._notify("warning", f"Started input capture for {selected_input.name}")
             self.timer = QTimer()
             self.timer.timeout.connect(partial(self.capture_input, selected_input))
             
-            self.window.change_input_expected(selected_input)
+            self._set_expected_input(selected_input)
             self.timer.start(4000)
         else:
-            self.window.notify_warning(f"Stopping input capture for {selected_input.name}")
+            self._notify("warning", f"Stopping input capture for {selected_input.name}")
             self._stop_input_capture()
+
+    def _set_expected_input(self, selected_input):
+        self.joystick_manager.listens_for(selected_input)
+    
+    @Slot(str)
+    def _notify(self, type, msg):
+        self.window.notify(msg, type)
 
     def _stop_input_capture(self):
         if self.thread_tasks.get("joystick", False):
-            self.window.change_input_expected(None)
+            self._set_expected_input(None)
 
         if self.timer and self.timer.isActive():
             self.timer.stop()
         self.timer = None
     
     def capture_input(self, expected_input):
-        if self.window.is_expected_input_pressed():
-            self.window.save_current_input_frame_as(expected_input.name)
+        if self.joystick_manager.is_expected_input_pressed():
+            self.camera_system.save_current_frame(expected_input.name)
         else:
-            self.window.save_current_input_frame_as("basura")
+            self.camera_system.save_current_frame("basura")
 
     def _start_thread_task(self, task, signal_setting=None):
         self.thread_tasks[task.name] = task
         if signal_setting is not None:
             signal_setting(task)
-        task.error_signal.connect(self.window.notify_error)
-        task.success_signal.connect(self.window.notify_success)
+        task.error_signal.connect(partial(self._notify, "error"))
+        task.success_signal.connect(partial(self._notify, "success"))
         task.start()
 
     def go_back(self):
         self._stop_input_capture()
         super().go_back()
+
+    @Slot(str)
+    def update_current_input(self, map_name):
+        self.joystick_manager.update_expected_input(map_name)
 
     @Slot(QImage)
     def update_image(self, cv_img):
@@ -110,8 +124,8 @@ class CaptureInputMenu(Menu):
 
     def showEvent(self, event):
         super().showEvent(event)
-        if self.window.is_camera_connected() and self.window.is_joystick_connected():
+        if self.camera_system.is_camera_connected() and self.joystick_manager.is_joystick_connected():
             self._start_thread_task(VideoThread(self.window, "camera"), lambda task: task.change_pixmap_signal.connect(self.update_image))
-            self._start_thread_task(JoystickThread(self.window, "joystick", self.name))
+            self._start_thread_task(JoystickThread(self.window, "joystick", self.name), lambda task: task.update_input.connect(self.update_current_input))
         else:
             self.go_back()
