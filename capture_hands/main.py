@@ -50,8 +50,8 @@ class Window(QWidget):
     def is_expected_input_pressed(self):
         return self.joystick_manager.is_expected_input_pressed()
 
-    def get_current_input(self, map_name):
-        self.joystick_manager.check_expected_input(map_name)
+    def update_current_input(self, map_name):
+        self.joystick_manager.update_expected_input(map_name)
 
     def get_camera_frame(self):
         return self.camera_system.get_current_frame()

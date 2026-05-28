@@ -1,5 +1,5 @@
 import itertools
-from collector import JoystickInput, StickData, DpadData, ButtonData, TriggerData
+from collector import JoystickInput, JoystickCombination, StickData, DpadData, ButtonData, TriggerData
 
 class JoystickButtonMap():
     def __init__(self, manager):
@@ -9,6 +9,7 @@ class JoystickButtonMap():
         self.stick_directions = []
         self.dpad_directions = []
         self.manager = manager
+        self.combos = []
 
         self._init_map()
 
@@ -34,26 +35,30 @@ class JoystickButtonMap():
     def get_dpads(self):
         return self.dpad_directions
 
+    def get_combos(self):
+        return self.combos
+
     def __iter__(self):
-        return itertools.chain(self.stick_directions, self.dpad_directions, self.buttons)
+        return itertools.chain(self.stick_directions, self.dpad_directions, self.buttons, self.combos)
 
     def resolve_input(self, joystick_input, controller_type):
         self.controller_type = controller_type
-        joystick_input.resolve_for(self, controller_type)
+        pressed = joystick_input.resolve_for(self, controller_type)
         self.controller_type = None
+        return pressed
     
     def resolve_button(self, button_index):
-        self.manager.get_button(button_index)
+        return self.manager.get_button(button_index)
     
     def resolve_stick(self, direction):
         stick_axis = self.stick_axis[self.controller_type] if isinstance(self.stick_axis, list) else self.stick_axis
-        self.manager.get_stick(stick_axis, direction)
+        return self.manager.get_stick(stick_axis, direction)
     
     def resolve_dpad(self, direction):
-        self.manager.get_dpad(direction)
+        return self.manager.get_dpad(direction)
     
     def resolve_trigger(self, axis):
-        self.manager.get_trigger(axis)
+        return self.manager.get_trigger(axis)
 
 class JoystickLeftButtonMap(JoystickButtonMap):
     def _init_map(self):
@@ -88,3 +93,7 @@ class JoystickTriggersButtonMap(JoystickButtonMap):
             # 'L2': 6,
             # 'R2': 7,
         ]
+        for pair in itertools.combinations(self.buttons, 2):
+            combo = list(pair)
+            combo_name = f"{combo[0].name}+{combo[1].name}"
+            self.combos.append(JoystickCombination(combo_name, combo))

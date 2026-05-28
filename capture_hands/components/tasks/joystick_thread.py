@@ -11,7 +11,7 @@ class JoystickThread(Thread_Task):
 
     def run(self):
         while self._run_flag:
-            self.window.get_current_input(self.button_map_name)
+            self.window.update_current_input(self.button_map_name)
             self.msleep(10)
 
    

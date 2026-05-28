@@ -37,15 +37,15 @@ class CameraSystem():
         try:
             os.makedirs(capture_dir, exist_ok=True)
             pic_count = len([pic for pic in os.listdir(capture_dir) if pic.endswith('.jpg')])
-            print(pic_count)
 
             timestamp = time.strftime("%Y%m%d_%H%M%S")
-            filename = os.path.join(capture_dir, f"{pic_count}_{frame_name}_{timestamp}.jpg")
+            filename = f"{pic_count}_{frame_name}_{timestamp}.jpg"
+            filepath = os.path.join(capture_dir, filename)
             frame_bgr = cv2.cvtColor(self.get_current_frame(), cv2.COLOR_RGB2BGR)
-            saved = cv2.imwrite(filename, frame_bgr)
+            saved = cv2.imwrite(filepath, frame_bgr)
             
             if saved:
-                capture_msg = f"Frame saved at: {filename}"
+                capture_msg = f"Frame saved at: {os.path.join(os.path.basename(capture_dir), filename)}"
                 if "trash" == frame_name:
                     self.window.notify_warning(capture_msg)
                 else:

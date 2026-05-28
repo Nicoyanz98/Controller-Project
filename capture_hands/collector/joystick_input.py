@@ -11,7 +11,7 @@ class JoystickInput():
     
     @abstractmethod
     def resolve_for(self, map, controller_type):
-        self.data.get_value_for(map, controller_type)
+        return self.data.get_value_for(map, controller_type)
 
 class JoystickData():
     def __init__(self, value):
@@ -27,16 +27,27 @@ class JoystickData():
     
 class StickData(JoystickData):
     def get_value_for(self, map, controller_type):
-        map.resolve_stick(self._value_for(controller_type))
+        return map.resolve_stick(self._value_for(controller_type))
 
 class ButtonData(JoystickData):
     def get_value_for(self, map, controller_type):
-        map.resolve_button(self._value_for(controller_type))
+        return map.resolve_button(self._value_for(controller_type))
 
 class DpadData(JoystickData):
     def get_value_for(self, map, controller_type):
-        map.resolve_dpad(self._value_for(controller_type))
+        return map.resolve_dpad(self._value_for(controller_type))
 
 class TriggerData(JoystickData):
     def get_value_for(self, map, controller_type):
-        map.resolve_trigger(self._value_for(controller_type))
+        return map.resolve_trigger(self._value_for(controller_type))
+    
+class JoystickCombination(JoystickInput):
+    def __init__(self, name, combo):
+        symbol = "+".join([joystick_input.symbol for joystick_input in combo])
+        super().__init__(name, combo, symbol)
+    
+    def resolve_for(self, map, controller_type):
+        pressed = True
+        for joystick_input in self.data:
+            pressed = pressed and joystick_input.resolve_for(map, controller_type)
+        return pressed

@@ -3,3 +3,4 @@ dataset
 venv/*
 **/__pycache__
 capture_hands_2/data
+*/data
