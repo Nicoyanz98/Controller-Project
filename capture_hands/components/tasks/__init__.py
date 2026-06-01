@@ -1,2 +1,0 @@
-from components.tasks.joystick_thread import JoystickThread
-from components.tasks.video_thread import VideoThread

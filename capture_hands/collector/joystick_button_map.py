@@ -2,13 +2,13 @@ import itertools
 from collector import JoystickInput, JoystickCombination, StickData, DpadData, ButtonData, TriggerData
 
 class JoystickButtonMap():
-    def __init__(self, manager):
-        self.controller_type = None
+    def __init__(self, name, backend):
+        self.name = name
         self.buttons = []
         self.stick = None
         self.stick_directions = []
         self.dpad_directions = []
-        self.manager = manager
+        self.backend = backend
         self.combos = []
 
         self._init_map()
@@ -42,23 +42,20 @@ class JoystickButtonMap():
         return itertools.chain(self.stick_directions, self.dpad_directions, self.buttons, self.combos)
 
     def resolve_input(self, joystick_input, controller_type):
-        self.controller_type = controller_type
-        pressed = joystick_input.resolve_for(self, controller_type)
-        self.controller_type = None
-        return pressed
+        return joystick_input.resolve_for(self, controller_type)
     
     def resolve_button(self, button_index):
-        return self.manager.get_button(button_index)
+        return self.backend.get_button(button_index)
     
-    def resolve_stick(self, direction):
-        stick_axis = self.stick_axis[self.controller_type] if isinstance(self.stick_axis, list) else self.stick_axis
-        return self.manager.get_stick(stick_axis, direction)
+    def resolve_stick(self, direction, controller_type):
+        stick_axis = self.stick_axis[controller_type] if isinstance(self.stick_axis, list) else self.stick_axis
+        return self.backend.get_stick(stick_axis, direction)
     
     def resolve_dpad(self, direction):
-        return self.manager.get_dpad(direction)
+        return self.backend.get_dpad(direction)
     
     def resolve_trigger(self, axis):
-        return self.manager.get_trigger(axis)
+        return self.backend.get_trigger(axis)
 
 class JoystickLeftButtonMap(JoystickButtonMap):
     def _init_map(self):

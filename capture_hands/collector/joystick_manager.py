@@ -1,42 +1,48 @@
-import pygame
-from collector import JoystickLeftButtonMap, JoystickRightButtonMap, JoystickTriggersButtonMap
+from collector import JoystickThread, JoystickLeftButtonMap, JoystickRightButtonMap, JoystickTriggersButtonMap
+from PySide6.QtCore import Slot
+from functools import partial
 
 class JoystickManager():
-    TRIGGER_THRESHOLD = 0.5
-    STICK_THRESHOLD = 0.2
-
-    def __init__(self, window):
+    def __init__(self, window, name):
         self.window = window
-
-        self.expected_input = None
+        self.current_button_map = None
         self.pressed_expected_input = False
 
-        self.button_maps = {
-            "LEFT": JoystickLeftButtonMap(self),
-            "RIGHT": JoystickRightButtonMap(self),
-            "TRIGGERS": JoystickTriggersButtonMap(self),
-        }
+        self.thread = JoystickThread(self, "Joystick")
+        self.thread.error_signal.connect(partial(self._notify, "error"))
+        self.thread.error_signal.connect(self.window.go_back)
+        self.thread.success_signal.connect(partial(self._notify, "success"))
+        self.thread.input_update.connect(self.set_expected_input_state)
 
-        pygame.joystick.init()
-        self.joystick_connected = self._check_joystick_connection()
+        self.button_maps = {}
+        for name, button_map in [("LEFT", JoystickLeftButtonMap), ("RIGHT", JoystickRightButtonMap), ("TRIGGERS", JoystickTriggersButtonMap)]:
+            self.button_maps[name] = button_map(name, self.thread)
 
-    def _check_joystick_connection(self):
-        if pygame.joystick.get_count() > 0:
-            self.joystick = pygame.joystick.Joystick(0)
-            self.joystick.init()
+        self.thread.start()
 
-            name = self.joystick.get_name()
-            self.joystick_type = 1 if "xbox" in name.lower() else 0
+    def _notify(self, type, msg):
+        self.window.notify(msg, type)
+    
+    @Slot(tuple)
+    def set_expected_input_state(self, input_state):
+        self.pressed_expected_input = input_state
 
-            self.window.notify(f"Joystick connected: {name}", "success")
-            return True
-        
-        self.window.notify("No joystick connected", "error")
-        return False
+    def is_expected_input_pressed(self):
+        return self.pressed_expected_input
+
+    def is_joystick_connected(self):
+        is_connected = self.thread.is_joystick_connected()
+        if not is_connected:
+            self._notify("error", "No joystick connected")
+        return is_connected
+
+    def set_current_button_map(self, button_map_name):
+        self.current_button_map = self.button_maps.get(button_map_name, None)
 
     def listens_for(self, joystick_input):
-        self.expected_input = joystick_input
+        self.thread.set_expected_input_in_map(joystick_input, self.current_button_map)
 
+    # Buttons related methods
     def get_map_names(self):
         return list(self.button_maps.keys())
     
@@ -46,36 +52,7 @@ class JoystickManager():
             return [button_map.get_buttons(), button_map.get_sticks(), button_map.get_dpads(), button_map.get_combos()]
         return []
 
-    def is_joystick_connected(self):
-        self.joystick_connected = self._check_joystick_connection()
-        return self.joystick_connected
-
-    def update_expected_input(self, map_name):
-        pygame.event.pump()
-        if self.expected_input and (button_map := self.button_maps.get(map_name, None)) is not None:
-            self._update_active_input_in(button_map)
-
-    def _update_active_input_in(self, button_map):
-        pressed = button_map.resolve_input(self.expected_input, self.joystick_type)
-        self.pressed_expected_input = pressed
-
-    def get_button(self, button_index):
-        return self.joystick.get_button(button_index)
-
-    def get_stick(self, stick_axis, direction):        
-        x_axis, y_axis = stick_axis
-        x, y = self.joystick.get_axis(x_axis), self.joystick.get_axis(y_axis)
-        
-        get_direction = lambda value: 0 if abs(value) < self.STICK_THRESHOLD else (1 if value > 0 else -1)
-        x_dir, y_dir = get_direction(x), get_direction(y)
-
-        return (x_dir, y_dir) == direction
-
-    def get_dpad(self, direction):
-        return self.joystick.get_hat(0) == direction
-
-    def get_trigger(self, trigger_axis):
-        return self.joystick.get_axis(trigger_axis) > self.TRIGGER_THRESHOLD
-    
-    def is_expected_input_pressed(self):
-        return self.pressed_expected_input
+    def close(self):
+        self.thread.stop()
+        self.set_expected_input_state(False)
+        self.set_current_button_map(None)

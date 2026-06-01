@@ -1,6 +1,7 @@
 import sys, os
 from PySide6.QtCore import Slot
 from PySide6.QtWidgets import QApplication, QStackedWidget, QWidget, QVBoxLayout
+from functools import partial
 
 from components import NotificationContainer, CaptureInputMenu, MainMenu
 from collector import CameraSystem, JoystickManager
@@ -11,8 +12,8 @@ class Window(QWidget):
         
         self._create_window()
 
-        self.camera_system = CameraSystem(self, os.path.dirname(os.path.abspath(__file__)))
-        self.joystick_manager = JoystickManager(self)
+        self.joystick_manager = JoystickManager(self, "Joystick Manager")
+        self.camera_system = CameraSystem(self, "Camera System", os.path.dirname(os.path.abspath(__file__)))
 
         main_menu_index = self._create_main_menu()
 
@@ -31,7 +32,8 @@ class Window(QWidget):
     def _create_main_menu(self):
         options = []
         for name in self.joystick_manager.get_map_names():
-            options.append(CaptureInputMenu(self, name, self.joystick_manager.get_button_sections_for(name), self.joystick_manager, self.camera_system))
+            button_sections = self.joystick_manager.get_button_sections_for(name)
+            options.append(CaptureInputMenu(self, name, button_sections, self.joystick_manager, self.camera_system))
         self.main_menu = MainMenu(self, "MAIN", options, False)
         return self.add_page(self.main_menu)
     
@@ -41,32 +43,13 @@ class Window(QWidget):
         self.page_widget.addWidget(component)
         return page_index
     
-    def is_camera_connected(self):
-        return self.camera_system.is_camera_connected()
-    
-    def is_joystick_connected(self):
-        return self.joystick_manager.is_joystick_connected()
-    
-    def is_expected_input_pressed(self):
-        return self.joystick_manager.is_expected_input_pressed()
-
-    def update_current_input(self, map_name):
-        self.joystick_manager.update_expected_input(map_name)
-
-    def get_camera_frame(self):
-        return self.camera_system.get_current_frame()
-    
-    def change_input_expected(self, selected_input):
-        self.joystick_manager.listens_for(selected_input)
-    
-    def save_current_input_frame_as(self, frame_name):
-        self.camera_system.save_current_frame(frame_name)
-
     def notify(self, msg, type, secs=2):
         self.notifications.add_notification(msg, type, secs)
 
     def go_back(self):
-        self.change_menu(self.main_menu.get_index())
+        if hasattr("main_menu", self):
+            self.main_menu.reset_capture()
+            self.change_menu(self.main_menu.get_index())
 
     @Slot(str)
     def change_menu(self, page_index):
@@ -74,6 +57,7 @@ class Window(QWidget):
     
     def closeEvent(self, event):
         self.camera_system.close()
+        self.joystick_manager.close()
         super().closeEvent(event)
 
 if __name__ == "__main__":

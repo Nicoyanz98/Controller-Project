@@ -5,9 +5,9 @@ class Thread_Task(QThread):
     error_signal = Signal(str)
     success_signal = Signal(str)
 
-    def __init__(self, window, name):
-        self.window = window
-        super().__init__(window)
+    def __init__(self, manager, name):
+        self.manager = manager
+        super().__init__(manager)
         self._run_flag = True
         self.name = name
 

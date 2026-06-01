@@ -1,7 +1,7 @@
 from functools import partial
 
 from .menu import Menu
-from components import VideoThread, JoystickThread, FlowLayout
+from components import FlowLayout
 
 from PySide6.QtCore import Qt, Slot, QTimer
 from PySide6.QtGui import QImage, QPixmap
@@ -18,8 +18,6 @@ class CaptureInputMenu(Menu):
         super().__init__(window, name, back)
 
     def _create_menu(self):
-        self.thread_tasks = {}
-        
         self._create_header()
         self.layout.addSpacing(60)
         self._create_camera_feed()
@@ -78,18 +76,16 @@ class CaptureInputMenu(Menu):
             self.timer.start(4000)
         else:
             self._notify("warning", f"Stopping input capture for {selected_input.name}")
-            self._stop_input_capture()
+            self.stop_input_capture()
 
     def _set_expected_input(self, selected_input):
         self.joystick_manager.listens_for(selected_input)
     
-    @Slot(str)
     def _notify(self, type, msg):
         self.window.notify(msg, type)
 
-    def _stop_input_capture(self):
-        if self.thread_tasks.get("joystick", False):
-            self._set_expected_input(None)
+    def stop_input_capture(self):
+        self._set_expected_input(None)
 
         if self.timer and self.timer.isActive():
             self.timer.stop()
@@ -101,31 +97,15 @@ class CaptureInputMenu(Menu):
         else:
             self.camera_system.save_current_frame("basura")
 
-    def _start_thread_task(self, task, signal_setting=None):
-        self.thread_tasks[task.name] = task
-        if signal_setting is not None:
-            signal_setting(task)
-        task.error_signal.connect(partial(self._notify, "error"))
-        task.success_signal.connect(partial(self._notify, "success"))
-        task.start()
-
     def go_back(self):
-        self._stop_input_capture()
+        self.stop_input_capture()
         super().go_back()
 
-    @Slot(str)
-    def update_current_input(self, map_name):
-        self.joystick_manager.update_expected_input(map_name)
-
-    @Slot(QImage)
-    def update_image(self, cv_img):
+    def receive_frame(self, cv_img):
         qt_img = QPixmap.fromImage(cv_img)
         self.image_label.setPixmap(qt_img)
 
     def showEvent(self, event):
         super().showEvent(event)
-        if self.camera_system.is_camera_connected() and self.joystick_manager.is_joystick_connected():
-            self._start_thread_task(VideoThread(self.window, "camera"), lambda task: task.change_pixmap_signal.connect(self.update_image))
-            self._start_thread_task(JoystickThread(self.window, "joystick", self.name), lambda task: task.update_input.connect(self.update_current_input))
-        else:
+        if not self.camera_system.is_camera_connected() or not self.joystick_manager.is_joystick_connected():
             self.go_back()

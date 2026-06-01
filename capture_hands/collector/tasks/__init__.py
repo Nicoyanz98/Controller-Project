@@ -1,0 +1,2 @@
+from collector.tasks.joystick_thread import JoystickThread
+from collector.tasks.video_thread import VideoThread
