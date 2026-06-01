@@ -4,7 +4,7 @@ from .menu import Menu
 from components import FlowLayout
 
 from PySide6.QtCore import Qt, Slot, QTimer
-from PySide6.QtGui import QImage, QPixmap
+from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QLabel, QVBoxLayout, QButtonGroup
 
 class CaptureInputMenu(Menu):
@@ -14,7 +14,8 @@ class CaptureInputMenu(Menu):
         self.button_sections = button_sections
         
         self.button_selector = None
-        self.timer = None
+        self.capture_timer = None
+        self.feedback_timer = None
         super().__init__(window, name, back)
 
     def _create_menu(self):
@@ -66,14 +67,19 @@ class CaptureInputMenu(Menu):
             if btn is not button:
                 btn.setEnabled(not checked)
 
+    @Slot(object, bool)
     def toggle_timer_for(self, selected_input, start):
         if start:
             self._notify("warning", f"Started input capture for {selected_input.name}")
-            self.timer = QTimer()
-            self.timer.timeout.connect(partial(self.capture_input, selected_input))
+            self.capture_timer = QTimer()
+            self.capture_timer.timeout.connect(partial(self.capture_input, selected_input))
+            
+            self.feedback_timer = QTimer()
+            self.feedback_timer.timeout.connect(self.update_input_feedback)
             
             self._set_expected_input(selected_input)
-            self.timer.start(4000)
+            self.capture_timer.start(4000)
+            self.feedback_timer.start(50)
         else:
             self._notify("warning", f"Stopping input capture for {selected_input.name}")
             self.stop_input_capture()
@@ -87,10 +93,34 @@ class CaptureInputMenu(Menu):
     def stop_input_capture(self):
         self._set_expected_input(None)
 
-        if self.timer and self.timer.isActive():
-            self.timer.stop()
-        self.timer = None
+        if self.capture_timer is not None and self.capture_timer.isActive():
+            self.capture_timer.stop()
+
+        if self.feedback_timer is not None and self.feedback_timer.isActive():
+            self.feedback_timer.stop()
+        
+        self.feedback_timer = None
+        
+        self.capture_timer = None
+        self.image_label.setStyleSheet("")
     
+    @Slot()
+    def update_input_feedback(self):
+        pressed = self.joystick_manager.is_expected_input_pressed()
+        if pressed:
+            self.image_label.setStyleSheet("""
+                QLabel {
+                    border: 4px solid green;
+                }
+            """)
+        else:
+            self.image_label.setStyleSheet("""
+                QLabel {
+                    border: 4px solid yellow;
+                }
+            """)
+
+    @Slot(object)
     def capture_input(self, expected_input):
         if self.joystick_manager.is_expected_input_pressed():
             self.camera_system.save_current_frame(expected_input.name)
