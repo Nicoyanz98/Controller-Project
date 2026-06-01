@@ -5,7 +5,7 @@ from components import FlowLayout
 
 from PySide6.QtCore import Qt, Slot, QTimer
 from PySide6.QtGui import QPixmap
-from PySide6.QtWidgets import QLabel, QVBoxLayout, QButtonGroup
+from PySide6.QtWidgets import QLabel, QVBoxLayout, QButtonGroup, QSizePolicy
 
 class CaptureInputMenu(Menu):
     def __init__(self, window, name, button_sections, joystick_manager, camera_system, back=True):
@@ -27,9 +27,35 @@ class CaptureInputMenu(Menu):
 
     def _create_camera_feed(self):
         self.image_label = QLabel(self)
+        self.image_label.setSizePolicy(
+            QSizePolicy.Expanding,
+            QSizePolicy.Expanding
+        )
         self.image_label.setAlignment(Qt.AlignHCenter)
-        self.image_label.resize(640, 480)
+        self.current_pixmap = None
+        # self.image_label.resize(640, 480)
         self.layout.addWidget(self.image_label)
+
+    def receive_frame(self, cv_img):
+        self.current_pixmap = QPixmap.fromImage(cv_img)
+        self._update_camera_display()
+
+    def _update_camera_display(self):
+        if not self.current_pixmap:
+            return
+
+        scaled = self.current_pixmap.scaled(
+            self.image_label.width(),
+            self.image_label.height(),
+            Qt.KeepAspectRatio,
+            Qt.SmoothTransformation
+        )
+
+        self.image_label.setPixmap(scaled)
+    
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._update_camera_display()
 
     def _create_header(self):
         self.setStyleSheet("""
@@ -100,7 +126,7 @@ class CaptureInputMenu(Menu):
             self.feedback_timer.stop()
         
         self.feedback_timer = None
-        
+
         self.capture_timer = None
         self.image_label.setStyleSheet("")
     
@@ -130,10 +156,6 @@ class CaptureInputMenu(Menu):
     def go_back(self):
         self.stop_input_capture()
         super().go_back()
-
-    def receive_frame(self, cv_img):
-        qt_img = QPixmap.fromImage(cv_img)
-        self.image_label.setPixmap(qt_img)
 
     def showEvent(self, event):
         super().showEvent(event)
