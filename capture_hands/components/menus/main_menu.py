@@ -52,3 +52,7 @@ class MainMenu(Menu):
         header_layout.addWidget(subtitle)
 
         self.layout.addLayout(header_layout)
+    
+    def reset_capture(self):
+        for option in self.options:
+            option.stop_input_capture()

@@ -70,9 +70,6 @@ class Menu(QWidget):
         return button
     
     def go_back(self):
-        if self.thread_tasks:
-            for task in self.thread_tasks.values():
-                task.stop()
         self.image_label.clear()
         self.window.go_back()
     
