@@ -45,7 +45,7 @@ class CameraSystem():
         capture_dir = os.path.join(self.data_dir, frame_name)
         try:
             frame_rgb = self.thread.get_current_frame()
-            if frame_rgb is not None:
+            if frame_rgb is None:
                 raise Exception("Current frame not available")
             
             os.makedirs(capture_dir, exist_ok=True)
@@ -56,7 +56,7 @@ class CameraSystem():
             filepath = os.path.join(capture_dir, filename)
             frame_bgr = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
             saved = cv2.imwrite(filepath, frame_bgr)
-            
+
             if saved:
                 capture_msg = f"Frame saved at: {os.path.join(os.path.basename(capture_dir), filename)}"
                 if "trash" == frame_name:
@@ -66,7 +66,7 @@ class CameraSystem():
             else:
                 self._notify("error", f"Failure during saving: cv2.imwrite()")
         except Exception as e:
-            print(e)
+            print("Error: ", e)
             self._notify("error", f"Failure during saving: {e}")
     
     def _notify(self, type, msg):
