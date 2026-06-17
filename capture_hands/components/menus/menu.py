@@ -70,7 +70,7 @@ class Menu(QWidget):
         return button
     
     def go_back(self):
-        self.image_label.clear()
+        self.camera_feed.clear()
         self.window.go_back()
     
     def _create_back_button(self, layout):
