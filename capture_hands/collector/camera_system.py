@@ -33,7 +33,7 @@ class CameraSystem():
     def unsubscribe(self, sub):
         self.subscribers =  [s for s in self.subscribers if s is not sub]
 
-    def notify_subscriber(self, frame):
+    def notify_subscribers(self, frame):
         for sub in self.subscribers:
             sub.receive_frame(frame)
 
@@ -60,15 +60,17 @@ class CameraSystem():
             if saved:
                 capture_msg = f"Frame saved at: {os.path.join(os.path.basename(capture_dir), filename)}"
                 if "trash" == frame_name:
-                    self.window.notify(capture_msg, "warning")
+                    self._notify("warning", capture_msg)
                 else:
-                    self.window.notify(capture_msg, "success")
+                    self._notify("success", capture_msg)
             else:
-                self.window.notify(f"Failure during saving: cv2.imwrite()", "error")
+                self._notify("error", f"Failure during saving: cv2.imwrite()")
         except Exception as e:
             print(e)
-            self.window.notify(f"Failure during saving: {e}", "error")
+            self._notify("error", f"Failure during saving: {e}")
     
+    def _notify(self, type, msg):
+        self.window.notify(msg, type)
+
     def close(self):
         self.thread.stop()
-        self.set_current_button_map(None)

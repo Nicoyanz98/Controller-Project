@@ -3,7 +3,7 @@ from PySide6.QtCore import Slot
 from functools import partial
 
 class JoystickManager():
-    def __init__(self, window, name):
+    def __init__(self, window):
         self.window = window
         self.current_button_map = None
         self.pressed_expected_input = False

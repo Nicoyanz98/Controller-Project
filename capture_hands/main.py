@@ -12,8 +12,8 @@ class Window(QWidget):
         
         self._create_window()
 
-        self.joystick_manager = JoystickManager(self, "Joystick Manager")
-        self.camera_system = CameraSystem(self, "Camera System", os.path.dirname(os.path.abspath(__file__)))
+        self.joystick_manager = JoystickManager(self)
+        self.camera_system = CameraSystem(self, os.path.dirname(os.path.abspath(__file__)))
 
         main_menu_index = self._create_main_menu()
 
@@ -47,7 +47,7 @@ class Window(QWidget):
         self.notifications.add_notification(msg, type, secs)
 
     def go_back(self):
-        if hasattr("main_menu", self):
+        if hasattr(self, "main_menu"):
             self.main_menu.reset_capture()
             self.change_menu(self.main_menu.get_index())
 
