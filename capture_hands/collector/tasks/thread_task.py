@@ -7,7 +7,7 @@ class Thread_Task(QThread):
 
     def __init__(self, manager, name):
         self.manager = manager
-        super().__init__(manager)
+        super().__init__()
         self._run_flag = True
         self.name = name
 
