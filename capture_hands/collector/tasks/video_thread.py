@@ -56,8 +56,7 @@ class VideoThread(Thread_Task):
         except Exception as e:
             self.error_signal.emit(str(e))
         finally:
-            self.stop()
+            self.cap.release()
     
     def stop(self):
-        self.cap.release()
         super().stop()

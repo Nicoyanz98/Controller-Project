@@ -155,9 +155,12 @@ class CaptureInputMenu(Menu):
 
     def go_back(self):
         self.stop_input_capture()
+        self.camera_system.unsubscribe(self)
         super().go_back()
 
     def showEvent(self, event):
         super().showEvent(event)
         if not self.camera_system.is_camera_connected() or not self.joystick_manager.is_joystick_connected():
             self.go_back()
+        
+        self.camera_system.subscribe(self)
