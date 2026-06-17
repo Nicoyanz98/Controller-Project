@@ -128,4 +128,5 @@ class CaptureInputMenu(Menu):
         if not self.camera_system.is_camera_connected() or not self.joystick_manager.is_joystick_connected():
             self.go_back()
         
+        self.joystick_manager.set_current_button_map(self.name)
         self.camera_system.subscribe(self)

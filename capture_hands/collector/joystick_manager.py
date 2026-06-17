@@ -23,7 +23,7 @@ class JoystickManager():
     def _notify(self, type, msg):
         self.window.notify(msg, type)
     
-    @Slot(tuple)
+    @Slot(bool)
     def set_expected_input_state(self, input_state):
         self.pressed_expected_input = input_state
 

@@ -6,7 +6,7 @@ class JoystickThread(Thread_Task):
     TRIGGER_THRESHOLD = 0.5
     STICK_THRESHOLD = 0.2
 
-    input_update = Signal(str)
+    input_update = Signal(bool)
 
     def __init__(self, manager, name):
         super().__init__(manager, name)
