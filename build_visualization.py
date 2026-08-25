@@ -1,5 +1,5 @@
 import argparse
-
+import os
 from results_store import load_results
 from visualizer import HandVisualizer
 
@@ -24,7 +24,8 @@ def main():
         results = {k: v for k, v in results.items() if k in args.only}
 
     mano_faces = HandVisualizer.load_mano_faces(args.mano_pkl) if args.mano_pkl else None
-    HandVisualizer(mano_faces=mano_faces).add_results(list(results.values())).save_html(args.out_html)
+    html_path = os.path.join(args.output_folder, args.out_html)
+    HandVisualizer(mano_faces=mano_faces).add_results(list(results.values())).save_html(html_path)
 
 
 if __name__ == "__main__":

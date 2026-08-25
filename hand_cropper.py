@@ -28,8 +28,8 @@ class HandCrop:
 
 class HandCropper:
     """
-    Runs YOLO hand-pose detection on one image and produces expanded, keypoint-aligned square crops. The expansion + directional shift
-    compensate for the raw YOLO box tending to clip fingertips / miscenter on the wrist.
+    Runs YOLO hand-pose detection on one image and produces expanded, keypoint-aligned square crops. 
+    The expansion abd directional shift compensate for the raw YOLO box tending to clip fingertips / miscenter.
     """
 
     def __init__(self, model_path, img_output_size=224):
@@ -37,21 +37,32 @@ class HandCropper:
         self.model = YOLO(model_path)
 
     # Principal method
-    def process(self, image_path, shift_factor=0.3, perp_shift_factor=1.0, expand_factor=1.8, save_to_disk=False, output_folder="output", save_comparison=False):
+    def process(self, image, shift_factor=0.3, perp_shift_factor=1.0, expand_factor=1.4, save_to_disk=False, output_folder="output", save_comparison=False, source_label=None):
         """
-        Detect + crop every hand in `image_path`. Returns list[HandCrop].
+        Detect + crop every hand in `image`. Returns list[HandCrop].
 
-        save_to_disk=True additionally writes each crop jpg (and, if save_comparison=True, an annotated comparison image) under
-        output_folder -- useful when running the cropper as standalone rather than feeding it straight into inference.
+        `image` = path (str) or an in-memory BGR frame (np.ndarray)
+
+        `save_to_disk` = True additionally writes each crop jpg
+        `save_comparison` = True additionally writes an annotated comparison image
+        `output_folder` = path (str) where files are saved; ignored for in-memory frames
         """
-        orig_img = cv2.imread(image_path)
-        if orig_img is None:
-            raise FileNotFoundError(f"Could not read image: {image_path}")
+        if isinstance(image, str):
+            orig_img = cv2.imread(image)
+            if orig_img is None:
+                raise FileNotFoundError(f"Could not read image: {image}")
+            source_label = source_label or image
+        else:
+            orig_img = image
+            source_label = source_label or "in_memory_frame"
+            if save_to_disk:
+                print("Warning: save_to_disk is ignored for in-memory frames.")
+                save_to_disk = False
 
         resized = cv2.resize(orig_img, (self.img_output_size, self.img_output_size), interpolation=cv2.INTER_LINEAR)
-        results = self.model.predict(resized, imgsz=512, conf=0.05)
+        results = self.model.predict(resized, imgsz=480, conf=0.05)
 
-        hand_crops = self._build_crops(orig_img, results, image_path, shift_factor, perp_shift_factor, expand_factor)
+        hand_crops = self._build_crops(orig_img, results, source_label, shift_factor, perp_shift_factor, expand_factor)
 
         if save_to_disk:
             self._save_to_disk(hand_crops, output_folder, orig_img if save_comparison else None)
@@ -59,10 +70,10 @@ class HandCropper:
         return hand_crops
 
     # Detection -> crops
-    def _build_crops(self, orig_img, results, image_path, shift_factor, perp_shift_factor, expand_factor):
+    def _build_crops(self, orig_img, results, source_label, shift_factor, perp_shift_factor, expand_factor):
         boxes_out = results[0].boxes
         if boxes_out is None or len(boxes_out) == 0:
-            print(f"No hands detected in {image_path}.")
+            print(f"No hands detected in {source_label}.")
             return []
 
         orig_h, orig_w = orig_img.shape[:2]
@@ -77,8 +88,17 @@ class HandCropper:
         for idx, (box, conf) in enumerate(zip(boxes, confidences)):
             orig_box, orig_kpts = self._scale_to_original(box, kpts, idx, scale_x, scale_y)
             crop_bgr, crop_bounds, v_start, v_end = self._crop_one_hand(orig_img, orig_box, orig_kpts, shift_factor, perp_shift_factor, expand_factor)
-            crop_rgb = cv2.cvtColor(crop_bgr, cv2.COLOR_BGR2RGB)
-            hand_crops.append(HandCrop(crop_rgb, crop_bounds, orig_box, orig_kpts, float(conf), idx + 1, image_path, v_start, v_end))
+            hand_crops.append(HandCrop(
+                crop_rgb=cv2.cvtColor(crop_bgr, cv2.COLOR_BGR2RGB),
+                crop_bounds=crop_bounds,
+                orig_box=orig_box,
+                orig_kpts=orig_kpts,
+                confidence=float(conf),
+                hand_index=idx + 1,
+                source_image=source_label,
+                vector_start=v_start,
+                vector_end=v_end,
+            ))
         return hand_crops
 
     def _scale_to_original(self, box, kpts, idx, scale_x, scale_y):
@@ -99,7 +119,8 @@ class HandCropper:
 
     def _shift_center_toward_fingers(self, keypoints, cx, cy, shift_distance, perp_shift_factor):
         """
-        Nudge the box center from the raw detection box towards the finger mean (compensates for YOLO boxes that hug the wrist too tightly).
+        Nudge the box center from the raw detection box towards the finger mean (compensates for YOLO boxes 
+        that hug the wrist too tightly).
         """
         v_start = (int(cx), int(cy))
         v_end = (int(cx), int(cy))

@@ -21,7 +21,7 @@ python visualize_inference.py --model ./models/rejshand_net.pt --image ./img/<im
 - [ ] Real-time
     - [ ] Connect to livefeed from webcam and infer every few seconds
     - [ ] Mantain rotations for each hand between new frames (and runs)
-    - [ ] Paralelize inferences to increase framerate (if necessary)
+    - [x] Use threads to separate inferences to increase framerate (if necessary)
 - [ ] Inetegrate Joystick RoI model
 
 ## Bugs found
@@ -38,4 +38,17 @@ python visualize_inference.py --model ./models/rejshand_net.pt --image ./img/<im
         *Will need to account for handedness detection to work*
         *Test mediapipe handedness detection with pretrained model*
     - HandNet training suggest that right handed is canonically the mesh handedness because of a Random Flip used 
-    *Further investigation to find if removing it should solve the handedness or decrease accuracy*
+        *Further investigation to find if removing it should solve the handedness or decrease accuracy*
+
+- ~~**Low framerate for the 3D mesh inference**~~
+    - Check average ms in between operations
+        *Inference of the 3D mesh is the slowest of the operations*
+        *YOLO inference is the second slowest, but can be ajusted* 
+    - Try to use threads to reduce frames used for inference. 
+        *This allows fr better framerate for the image but reduces the framerate of inference*
+- **Slots assignment is unstable**
+    - A 3D mesh can appear on both slots in different frames
+    - Check if usage of YOLO tracking instead of inferences to assign specific hands to a slot is possible
+
+- **Unstable 3D mesh between two frames**
+    - Find methods/algorithms to adjust/stabilize new 3D meshes to allow for better visualization

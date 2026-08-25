@@ -25,10 +25,7 @@ def main():
 
     # Detect + crop every hand in this image (in memory).
     cropper = HandCropper(args.yolo_model, img_output_size=args.crop_size)
-    hand_crops = cropper.process(
-        args.image, save_to_disk=args.save_crops, output_folder=args.output_folder,
-        save_comparison=args.save_crops,
-    )
+    hand_crops = cropper.process(args.image, save_to_disk=args.save_crops, output_folder=args.output_folder,save_comparison=args.save_crops)
     if not hand_crops:
         print("No hands found -- nothing to infer.")
         return
@@ -43,12 +40,14 @@ def main():
     )
 
     # Merge into the results store (accumulates across separate runs).
-    all_results = save_results(new_results, args.results, merge=True)
-    print(f"Results store '{args.results}' now has {len(all_results)} hand(s): {list(all_results.keys())}")
+    results_path = os.path.join(args.output_folder, args.results)
+    all_results = save_results(new_results, results_path, merge=True)
+    print(f"Results store '{results_path}' now has {len(all_results)} hand(s): {list(all_results.keys())}")
 
     # Build ONE interactive HTML covering every hand in the store.
     mano_faces = HandVisualizer.load_mano_faces(args.mano_pkl) if args.mano_pkl else None
-    HandVisualizer(mano_faces=mano_faces).add_results(list(all_results.values())).save_html(args.out_html)
+    html_path = os.path.join(args.output_folder, args.out_html)
+    HandVisualizer(mano_faces=mano_faces).add_results(list(all_results.values())).save_html(html_path)
 
 
 if __name__ == "__main__":
