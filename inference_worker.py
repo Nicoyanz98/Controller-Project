@@ -17,7 +17,7 @@ class InferenceWorker:
  
         self._results: List[Optional[object]] = [None] * n_slots
         self._crop_bounds: List[Optional[tuple]] = [None] * n_slots
-        self._prev_centers = [None] * n_slots
+        self._slot_state = [None] * n_slots 
  
         self._stop_event = threading.Event()
         self._error: Optional[Exception] = None
@@ -67,19 +67,24 @@ class InferenceWorker:
  
     def _process_frame(self, frame, seq):
         hand_crops = self.cropper.process(frame, source_label=f"live_frame_{seq}")
-        assigned, self._prev_centers = assign_slots(self._prev_centers, hand_crops)
+        assigned, self._slot_state = assign_slots(self._slot_state, hand_crops)
  
         new_results = list(self._results)
         new_bounds = list(self._crop_bounds)
-        for slot, hc in enumerate(assigned):
-            if hc is None:
-                continue  # leave that slot's previous result in place
-            result = self.inferencer.infer_one(
-                hc.crop_rgb, hand_id=f"slot{slot + 1}",
-                source_image=hc.source_image, crop_bounds=hc.crop_bounds,
+
+        occupied_slots = [slot for slot, hc in enumerate(assigned) if hc is not None]
+        if occupied_slots:
+            batch_crops = [assigned[slot] for slot in occupied_slots]
+            results = self.inferencer.infer_batch(
+                crops_rgb=[hc.crop_rgb for hc in batch_crops],
+                hand_ids=[f"slot{slot + 1}" for slot in occupied_slots],
+                source_images=[hc.source_image for hc in batch_crops],
+                crop_bounds_list=[hc.crop_bounds for hc in batch_crops],
             )
-            new_results[slot] = result
-            new_bounds[slot] = hc.crop_bounds
+            for slot, hc, result in zip(occupied_slots, batch_crops, results):
+                new_results[slot] = result
+                new_bounds[slot] = hc.crop_bounds
+
  
         with self._lock:
             self._results = new_results

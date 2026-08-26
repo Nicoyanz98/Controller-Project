@@ -64,7 +64,7 @@ def main():
     parser.add_argument("--mano_pkl", default=None, help="MANO_LEFT_C.pkl / MANO_RIGHT_C.pkl for a solid mesh; omit for a point cloud")
     args = parser.parse_args()
 
-    cropper = HandCropper(args.yolo_model, img_output_size=args.crop_size)
+    cropper = HandCropper(args.yolo_model, img_output_size=args.crop_size, use_tracking=True)
     inferencer = HandNetInferencer(args.handnet_model, image_size=args.crop_size, root_index=args.root_index)
     mano_faces = LiveHandVisualizer.load_mano_faces(args.mano_pkl) if args.mano_pkl else None
 

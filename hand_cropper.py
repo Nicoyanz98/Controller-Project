@@ -24,6 +24,7 @@ class HandCrop:
     source_image: Optional[str] = None
     vector_start: Optional[Tuple[int, int]] = None  # wrist point, for debug-arrow overlay
     vector_end: Optional[Tuple[int, int]] = None    # shifted crop center, for debug-arrow overlay
+    track_id: Optional[int] = None          # persistent identity from YOLO's tracker
 
 
 class HandCropper:
@@ -32,12 +33,14 @@ class HandCropper:
     The expansion abd directional shift compensate for the raw YOLO box tending to clip fingertips / miscenter.
     """
 
-    def __init__(self, model_path, img_output_size=224):
+    def __init__(self, model_path, img_output_size=224, use_tracking=False, tracker="bytetrack.yaml"):
         self.img_output_size = img_output_size
+        self.use_tracking = use_tracking
+        self.tracker = tracker
         self.model = YOLO(model_path)
 
     # Principal method
-    def process(self, image, shift_factor=0.3, perp_shift_factor=1.0, expand_factor=1.4, save_to_disk=False, output_folder="output", save_comparison=False, source_label=None):
+    def process(self, image, shift_factor=0.2, perp_shift_factor=0.5, expand_factor=1.2, save_to_disk=False, output_folder="output", save_comparison=False, source_label=None):
         """
         Detect + crop every hand in `image`. Returns list[HandCrop].
 
@@ -60,7 +63,7 @@ class HandCropper:
                 save_to_disk = False
 
         resized = cv2.resize(orig_img, (self.img_output_size, self.img_output_size), interpolation=cv2.INTER_LINEAR)
-        results = self.model.predict(resized, imgsz=480, conf=0.05)
+        results = self._detect(resized)
 
         hand_crops = self._build_crops(orig_img, results, source_label, shift_factor, perp_shift_factor, expand_factor)
 
@@ -68,6 +71,13 @@ class HandCropper:
             self._save_to_disk(hand_crops, output_folder, orig_img if save_comparison else None)
 
         return hand_crops
+
+    def _detect(self, resized_img):
+        """model.track(persist=True) when use_tracking=True, otherwise model.predict()."""
+        imgsize = 640 
+        if self.use_tracking:
+            return self.model.track(resized_img, imgsz=imgsize, conf=0.05, persist=True, verbose=False, tracker=self.tracker)
+        return self.model.predict(resized_img, imgsz=imgsize, conf=0.05, verbose=False)
 
     # Detection -> crops
     def _build_crops(self, orig_img, results, source_label, shift_factor, perp_shift_factor, expand_factor):
@@ -84,6 +94,8 @@ class HandCropper:
         confidences = boxes_out.conf.cpu().numpy()
         kpts = results[0].keypoints.xy.cpu().numpy() if results[0].keypoints is not None else None
 
+        track_ids = boxes_out.id.int().cpu().tolist() if boxes_out.id is not None else [None] * len(boxes)
+
         hand_crops = []
         for idx, (box, conf) in enumerate(zip(boxes, confidences)):
             orig_box, orig_kpts = self._scale_to_original(box, kpts, idx, scale_x, scale_y)
@@ -98,6 +110,7 @@ class HandCropper:
                 source_image=source_label,
                 vector_start=v_start,
                 vector_end=v_end,
+                track_id=track_ids[idx]
             ))
         return hand_crops
 
