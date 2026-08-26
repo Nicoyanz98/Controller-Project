@@ -9,8 +9,14 @@ python hand_cropper.py --model ./models/yolo26_hand_pose.pt --image ./img/<img_p
 ## Interactive Visualizer
 Visualizer for ReJSHand hand pose net with a pretrained model (use original repo for trainin and export model as `.pt` file).
 
+### Static Interactice Inference
 ```bash
-python visualize_inference.py --model ./models/rejshand_net.pt --image ./img/<img_path> --mano_pkl ./mano_models/MANO_LEFT_C.pkl
+python run_inference.py --yolo_model ./models/yolo26_habd_pose.pt --handnet_model ./models/rejshand_net.pt --image ./img/<img_path> --mano_pkl ./mano_models/MANO_LEFT_C.pkl
+```
+
+### Real Time Inference
+```bash
+python run_live.py --yolo_model ./models/yolo26_habd_pose.pt --handnet_model ./models/rejshand_net.pt --mano_pkl ./mano_models/MANO_LEFT_C.pkl --use_tracking
 ```
 
 ## TODO
@@ -19,7 +25,7 @@ python visualize_inference.py --model ./models/rejshand_net.pt --image ./img/<im
 - [x] Crop hands in an image to feed the HandNet
 - [x] Infer every hand from an image after cropping them
 - [ ] Real-time
-    - [ ] Connect to livefeed from webcam and infer every few seconds
+    - [x] Connect to livefeed from webcam and infer every few seconds
     - [ ] Mantain rotations for each hand between new frames (and runs)
     - [x] Use threads to separate inferences to increase framerate (if necessary)
 - [ ] Inetegrate Joystick RoI model
