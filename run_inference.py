@@ -13,7 +13,7 @@ def main():
     parser.add_argument("--handnet_model", required=True, help="TorchScript-exported HandNet .pt")
     parser.add_argument("--image", required=True, help="path to one photo (may contain multiple hands)")
     parser.add_argument("--crop_size", type=int, default=224, help="must match the size HandNet was exported/trained with")
-    parser.add_argument("--root_index", type=int, default=9, help="cfg.py DATA.ROOT_INDEX=9 vs VAL.ROOT_INDEX=0 -- unresolved, try both")
+    parser.add_argument("--root_index", type=int, default=0, help="cfg.py DATA.ROOT_INDEX=9 vs VAL.ROOT_INDEX=0 -- unresolved, try both")
     parser.add_argument("--mano_pkl", default=None, help="MANO_LEFT_C.pkl / MANO_RIGHT_C.pkl for a solid mesh; omit for a point cloud")
     parser.add_argument("--results", default="hand_results.pkl", help="results store -- accumulates across runs, pass the SAME path to batch")
     parser.add_argument("--out_html", default="hand_visualization.html")

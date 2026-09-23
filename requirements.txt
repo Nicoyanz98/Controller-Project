@@ -4,5 +4,5 @@ pillow
 matplotlib
 plotly
 ultralytics
-opencv
+opencv-python
 pyvista
