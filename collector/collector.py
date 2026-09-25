@@ -4,18 +4,20 @@ import os
 os.environ['OPENCV_LOG_LEVEL'] = 'OFF'
 os.environ['OPENCV_FFMPEG_LOGLEVEL'] = '-8'
 os.environ["QT_LOGGING_RULES"] = "*.warning=false;qt.qpa.fonts.warning=false"
-
 import cv2
+import argparse
+
 from joystick_handler import JoystickHandler
 from camera_system import CameraSystem
 
 
 class Collector:
-    def __init__(self, save_dir="./data"):
+    def __init__(self, save_dir):
         self.joystick_handler = JoystickHandler(self._process_inputs)
         self.camera_system = CameraSystem()
-        self.save_dir = save_dir
-        os.makedirs(self.save_dir, exist_ok=True)
+        os.makedirs(save_dir, exist_ok=True)
+        self.save_dir = os.path.join(save_dir, len(os.listdir(save_dir)))
+
         self.started = False
 
     def _process_inputs(self, inputs):
@@ -51,5 +53,10 @@ class Collector:
             self.camera_system.stop()
 
 if __name__ == "__main__":
-    collector = Collector()
+    parser = argparse.ArgumentParser(description="Collector script.")
+    parser.add_argument("--save_dir", default="./data", help="Saving directory for images obtained")
+
+    args = parser.parse_args()
+
+    collector = Collector(args.save_dir)
     collector.run()
