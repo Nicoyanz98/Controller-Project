@@ -12,21 +12,25 @@ class Collector:
         os.makedirs(self.save_dir, exist_ok=True)
 
     def _process_inputs(self, inputs):
-        file_name = "trash"
+        name = "basura"
         if inputs:
-            ordered_inputs = list(inputs).sort()
-            file_name = "+".join(ordered_inputs)
-        print(file_name)
-
-    def process_frame(self, frame):
-        def save_frame(frame, filename):
-            filepath = os.path.join(self.save_dir, filename)
-            cv2.imwrite(filepath, frame)
-            self.camera_system.inform(f"Saved frame to {filepath}")
-            
+            is_combo = len(inputs.keys()) > 1
+            inputs_list = [(input_name.lower() + "_" + value.lower()).rstrip("_") for input_name, value in inputs.items()]
+            ordered_inputs = sorted(inputs_list)
+            name = "_".join(ordered_inputs)
+            if is_combo:
+                name = "combo_" + name
+        filename = os.path.join(self.save_dir, name)
+        print(filename)
+        # self.camera_system.save_frame(filename)
 
     def run(self):
-        self.camera_system.run(callback_fn=self.process_frame)
+        try:
+            self.joystick_handler.start()
+            self.camera_system.start()
+        finally:
+            self.joystick_handler.stop()
+            self.camera_system.stop()
 
 if __name__ == "__main__":
     collector = Collector()

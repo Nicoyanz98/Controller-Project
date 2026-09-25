@@ -17,13 +17,17 @@ class JoystickHandler:
 
         self.button_map = create_map(self.joystick.get_name().lower(), self.joystick)
 
-        self.axis_motion = set()
-        self.pressed_input = set()
+        self.pressed_input = {}
 
         self.joystick_thread = threading.Thread(target=self._worker, daemon=True)
 
     def _init_joystick(self):
-        while not self.joystick_handler.get_count() > 0:
+        warned = False
+        while self.joystick_handler.get_count() <= 0:
+            if not warned:
+                print("Connect a controller")
+                warned = True
+            pygame.event.pump()
             sleep(1)
         self.joystick = self.joystick_handler.Joystick(0)
 
@@ -32,43 +36,25 @@ class JoystickHandler:
         while self.running:
             self._handle_inputs()
 
-            if self.pressed_input:
+            elapsed_time = time() - last_time_pressed
+            if (self.pressed_input and elapsed_time > 1.0) or (not self.pressed_input and elapsed_time > 4.0):
                 last_time_pressed = time()
                 self.callback(self.pressed_input)
-            else:
-                elapsed_time = time() - last_time_pressed
-                if elapsed_time >= 4.0:
-                    last_time_pressed = time()
-                    self.callback(self.pressed_input)
                     
 
-    def _handle_inputs(self, callback_fn=None):
+    def _handle_inputs(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return
 
-            if event.type == pygame.JOYBUTTONDOWN:
-                self.pressed_input.add(self.button_map.handle_button(event.button))
-            elif event.type == pygame.JOYBUTTONUP:
-                self.pressed_input.discard(self.button_map.handle_button(event.button))
+            name, value, is_active = self.button_map.handle_event(event)
 
-            elif event.type == pygame.JOYAXISMOTION:
-                if abs(event.value) > 0.5:
-                    self.pressed_input.add(self.button_map.handle_axis(event.axis, event.value))
-                    self.axis_motion.add(event.axis)
-                elif abs(event.value) <= 0.5 and event.axis in self.axis_motion:
-                    self.pressed_input.discard(self.button_map.handle_axis(event.axis, event.value))
-                    self.axis_motion.remove(event.axis)
-
-            elif event.type == pygame.JOYHATMOTION:
-                x, y = event.value
-                if abs(x) == 1 or abs(y) == 1:
-                    self.pressed_input.add(self.button_map.handle_hat(event.hat, event.value))
+            if name is not None:
+                if is_active:
+                    self.pressed_input[name] = value
                 else:
-                    self.pressed_input.discard(self.button_map.handle_hat(event.hat, event.value))
-        
-        if callback_fn:
-            callback_fn(self.pressed_input)
+                    self.pressed_input.pop(name, None)
+
         pygame.event.pump()
 
     def start(self):
