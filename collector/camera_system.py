@@ -1,15 +1,33 @@
 import cv2
 import threading
 import os
-from time import time
+from time import time, sleep
 
 class CameraSystem:
     def __init__(self):
         self.camera_thread = threading.Thread(target=self._camera_worker, daemon=True)
         self.running = False
 
+        self._init_camera()
+
         self.frame = None
         self.frame_lock = threading.Lock()
+
+    def _init_camera(self):
+        warned = False
+        while True:
+            self.cap = cv2.VideoCapture(0)
+            if self.cap.isOpened():
+                break
+            
+            if not warned:
+                print("Please connect a camera")
+                warned = True
+
+            if self.cap:
+                self.cap.release()
+            sleep(1)
+        print("Camera detected")
 
     def _camera_worker(self):
         try:
@@ -32,16 +50,8 @@ class CameraSystem:
                 return None
 
     def start(self):
-        self.cap = cv2.VideoCapture(0)
         self.running = True
         self.camera_thread.start()
-
-        while True:
-            if (frame := self.get_frame()) is not None:
-                cv2.imshow("Camera Feed", frame)
-
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
 
     def stop(self):
         self.running = False

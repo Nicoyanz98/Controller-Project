@@ -25,10 +25,11 @@ class JoystickHandler:
         warned = False
         while self.joystick_handler.get_count() <= 0:
             if not warned:
-                print("Connect a controller")
+                print("Please connect a controller")
                 warned = True
             pygame.event.pump()
             sleep(1)
+        print("Controller detected")
         self.joystick = self.joystick_handler.Joystick(0)
 
     def _worker(self):
