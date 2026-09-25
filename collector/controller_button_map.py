@@ -1,16 +1,16 @@
 from abc import ABC, abstractmethod
 
-class ControllerButtonMap(ABC):
-    def __init__(self, type, controller):
-        if "playstation" in type and "4" in type:
-            return Playstation4ButtonMap(controller)
-        elif "playstation" in type and "5" in type:
-            return Playstation5ButtonMap(controller)
-        elif "xbox" in type:
-            return XboxButtonMap(controller)
-        else:
-            raise ValueError("Invalid controller type. Must be 0 (Playstation) or 1 (Xbox).")
+def create_map(type, controller):
+    if "playstation" in type and "4" in type:
+        return Playstation4ButtonMap(controller)
+    elif "playstation" in type and "5" in type:
+        return Playstation5ButtonMap(controller)
+    elif "xbox" in type:
+        return XboxButtonMap(controller)
+    else:
+        raise ValueError("Invalid controller type. Must be 0 (Playstation) or 1 (Xbox).")
 
+class ControllerButtonMap(ABC):
     def __init__(self, controller):
         self.controller = controller
         self._init_map()
