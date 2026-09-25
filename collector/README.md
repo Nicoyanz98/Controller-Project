@@ -20,7 +20,6 @@ source .collector/bin/activate
 
 ### Installing dependencies
 ```bash
-cd collector
 pip install -r requirements.txt
 ```
 
