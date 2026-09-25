@@ -1,7 +1,7 @@
 import cv2
 import threading
 import os
-from time import time, sleep
+from time import time, sleep, strftime
 
 class CameraSystem:
     def __init__(self):
@@ -59,9 +59,11 @@ class CameraSystem:
 
     def save_frame(self, filename):
         frame = self.get_frame()
-        filename = os.path.join(f"{filename}_{time().strftime('%Y%m%d_%H%M%S')}.jpg")
+        filename = os.path.join(f"{filename}_{strftime('%Y%m%d-%H%M%S')}.jpg")
         if frame is not None:
-            cv2.imwrite(filename, frame)
-            print(f"Saved frame to {filename}")
+            if cv2.imwrite(filename, frame):
+                print(f"Saved frame to {filename}")
+            else:
+                print("Saving error")                
         else:
             print("No frame available to save.")

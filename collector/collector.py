@@ -15,9 +15,8 @@ class Collector:
     def __init__(self, save_dir):
         self.joystick_handler = JoystickHandler(self._process_inputs)
         self.camera_system = CameraSystem()
-        os.makedirs(save_dir, exist_ok=True)
-        self.save_dir = os.path.join(save_dir, len(os.listdir(save_dir)))
-
+        self.save_dir = os.path.join(save_dir, str(len(os.listdir(save_dir))))
+        os.makedirs(self.save_dir, exist_ok=True)
         self.started = False
 
     def _process_inputs(self, inputs):
@@ -31,8 +30,7 @@ class Collector:
                 if is_combo:
                     name = "combo_" + name
             filename = os.path.join(self.save_dir, name)
-            print(filename)
-        # self.camera_system.save_frame(filename)
+            self.camera_system.save_frame(filename)
 
     def run(self):
         try:
