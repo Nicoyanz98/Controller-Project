@@ -12,11 +12,17 @@ from camera_system import CameraSystem
 
 
 class Collector:
-    def __init__(self, save_dir):
-        self.joystick_handler = JoystickHandler(self._process_inputs)
+    def __init__(self, save_dir, wait_input, wait_idle):
+        self.joystick_handler = JoystickHandler(self._process_inputs, wait_input, wait_idle)
         self.camera_system = CameraSystem()
-        self.save_dir = os.path.join(save_dir, str(len(os.listdir(save_dir))))
+        
+        try:
+            folder_count = len(os.listdir(save_dir))
+        except FileNotFoundError:
+            folder_count = 0
+        self.save_dir = os.path.join(save_dir, str(folder_count))
         os.makedirs(self.save_dir, exist_ok=True)
+        
         self.started = False
 
     def _process_inputs(self, inputs):
@@ -53,8 +59,10 @@ class Collector:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Collector script.")
     parser.add_argument("--save_dir", default="./data", help="Saving directory for images obtained")
+    parser.add_argument("--t_input", default=1.0, help="Waiting time (in seconds) to capture image between continuos inputs")
+    parser.add_argument("--t_idle", default=5.0, help="Waiting time (in seconds) to capture image while idle")
 
     args = parser.parse_args()
 
-    collector = Collector(args.save_dir)
+    collector = Collector(args.save_dir, float(args.t_input), float(args.t_idle))
     collector.run()

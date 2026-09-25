@@ -5,8 +5,10 @@ import threading
 from controller_button_map import create_map
 
 class JoystickHandler:
-    def __init__(self, callback):
+    def __init__(self, callback, wait_input_time, wait_idle_time):
         self.callback = callback
+        self.wait_input_time = wait_input_time
+        self.wait_idle_time = wait_idle_time
         
         pygame.init()
 
@@ -38,7 +40,7 @@ class JoystickHandler:
             self._handle_inputs()
 
             elapsed_time = time() - last_time_pressed
-            if (self.pressed_input and elapsed_time > 1.0) or (not self.pressed_input and elapsed_time > 4.0):
+            if (self.pressed_input and elapsed_time > self.wait_input_time) or (not self.pressed_input and elapsed_time > self.wait_idle_time):
                 last_time_pressed = time()
                 self.callback(self.pressed_input)
                     
