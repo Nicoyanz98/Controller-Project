@@ -2,7 +2,7 @@ import pygame
 from time import sleep, time
 import threading
 
-from controller_button_map import ControllerButtonMap
+from controller_button_map import create_map
 
 class JoystickHandler:
     def __init__(self, callback):
@@ -15,7 +15,7 @@ class JoystickHandler:
 
         self._init_joystick()
 
-        self.button_map = ControllerButtonMap(self.joystick.get_name().lower(), self.joystick)
+        self.button_map = create_map(self.joystick.get_name().lower(), self.joystick)
 
         self.axis_motion = set()
         self.pressed_input = set()
@@ -23,8 +23,8 @@ class JoystickHandler:
         self.joystick_thread = threading.Thread(target=self._worker, daemon=True)
 
     def _init_joystick(self):
-        while self.joystick_handler.get_count() > 0:
-            sleep(10)
+        while not self.joystick_handler.get_count() > 0:
+            sleep(1)
         self.joystick = self.joystick_handler.Joystick(0)
 
     def _worker(self):
@@ -38,7 +38,9 @@ class JoystickHandler:
             else:
                 elapsed_time = time() - last_time_pressed
                 if elapsed_time >= 4.0:
+                    last_time_pressed = time()
                     self.callback(self.pressed_input)
+                    
 
     def _handle_inputs(self, callback_fn=None):
         for event in pygame.event.get():
@@ -68,3 +70,12 @@ class JoystickHandler:
         if callback_fn:
             callback_fn(self.pressed_input)
         pygame.event.pump()
+
+    def start(self):
+        self.running = True
+        self.joystick_thread.start()
+
+    def stop(self):
+        self.running = False
+        self.joystick_thread.join()
+        pygame.quit()
