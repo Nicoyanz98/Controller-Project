@@ -34,13 +34,13 @@ class CameraSystem:
             while self.running:
                 ret, frame = self.cap.read()
                 if not ret:
+                    print("here")
                     break
 
                 with self.frame_lock:
                     self.frame = frame.copy()
         finally:
-            self.cap.release()
-            cv2.destroyAllWindows()        
+            self.cap.release()      
 
     def get_frame(self):
         with self.frame_lock:
@@ -59,7 +59,7 @@ class CameraSystem:
 
     def save_frame(self, filename):
         frame = self.get_frame()
-        filename = os.path.join(f"{filename}_{strftime('%Y%m%d-%H%M%S')}.jpg")
+        filename = f"{filename}_{strftime('%Y%m%d-%H%M%S')}.jpg"
         if frame is not None:
             if cv2.imwrite(filename, frame):
                 print(f"Saved frame to {filename}")

@@ -44,8 +44,6 @@ class Collector:
             self.camera_system.start()
             
             self.started = True
-
-            self.joystick_handler.start
             while True:
                 if (frame := self.camera_system.get_frame()) is not None:
                     cv2.imshow("Camera Feed", frame)
@@ -55,6 +53,7 @@ class Collector:
         finally:
             self.joystick_handler.stop()
             self.camera_system.stop()
+            cv2.destroyAllWindows()  
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Collector script.")
