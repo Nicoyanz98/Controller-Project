@@ -18,7 +18,6 @@ class ControllerButtonMap(ABC):
             pygame.CONTROLLERBUTTONDOWN: (self._handle_button, lambda e: (e.button, True)),
             pygame.CONTROLLERBUTTONUP: (self._handle_button, lambda e: (e.button, False)),
             pygame.CONTROLLERAXISMOTION: (self._handle_axis, lambda e: (e.axis, e.value)),
-            # pygame.JOYHATMOTION: (self._handle_hat, lambda e: (e.hat, e.value)),
         }
 
         self.axis_values = {}
@@ -137,7 +136,7 @@ class PlaystationButtonMap(ControllerButtonMap):
             pygame.CONTROLLER_BUTTON_LEFTSHOULDER: "L1",
             pygame.CONTROLLER_BUTTON_RIGHTSHOULDER: "R1"
         }
-        self.trigger = { # Button indexes for the D-Pad on a PS4 controller
+        self.trigger = {
             pygame.CONTROLLER_AXIS_TRIGGERLEFT: "L2",
             pygame.CONTROLLER_AXIS_TRIGGERRIGHT: "R2"
         }
