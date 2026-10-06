@@ -1,4 +1,5 @@
 import pygame
+from pygame._sdl2 import controller
 from time import sleep, time
 import threading
 
@@ -12,12 +13,12 @@ class JoystickHandler:
         
         pygame.init()
 
-        self.joystick_handler = pygame.joystick
+        self.joystick_handler = controller
         self.joystick_handler.init()
 
         self._init_joystick()
 
-        self.button_map = create_map(self.joystick.get_name().lower(), self.joystick)
+        self.button_map = create_map(self.joystick.name.lower(), self.joystick)
 
         self.pressed_input = {}
 
@@ -31,8 +32,12 @@ class JoystickHandler:
                 warned = True
             pygame.event.pump()
             sleep(1)
-        print("Controller detected")
-        self.joystick = self.joystick_handler.Joystick(0)
+        if not self.joystick_handler.is_controller(0):
+            raise RuntimeError("Controller not recognized by SDL's controller database")
+        self.joystick = self.joystick_handler.Controller(0)
+        print(f"Controller detected: {self.joystick.name}")
+
+        
 
     def _worker(self):
         last_time_pressed = time()
