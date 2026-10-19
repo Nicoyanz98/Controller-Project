@@ -1,16 +1,17 @@
 import pygame
 from pygame._sdl2 import controller
-from time import sleep, time
+from time import sleep, perf_counter
 import threading
 
 from controller_button_map import create_map
 
 class JoystickHandler:
-    def __init__(self, callback, wait_input_time, wait_idle_time):
+    """Polls the controller on its own thread and reports its state through
+    callback(t, toggle_pressed, pressed_input) on every poll."""
+
+    def __init__(self, callback):
         self.callback = callback
-        self.wait_input_time = wait_input_time
-        self.wait_idle_time = wait_idle_time
-        
+
         pygame.init()
 
         self.joystick_handler = controller
@@ -37,23 +38,23 @@ class JoystickHandler:
         self.joystick = self.joystick_handler.Controller(0)
         print(f"Controller detected: {self.joystick.name}")
 
-        
-
     def _worker(self):
-        last_time_pressed = time()
         while self.running:
-            self._handle_inputs()
-
-            elapsed_time = time() - last_time_pressed
-            if (self.pressed_input and elapsed_time > self.wait_input_time) or (not self.pressed_input and elapsed_time > self.wait_idle_time):
-                last_time_pressed = time()
-                self.callback(self.pressed_input)
-                    
+            toggle_pressed = self._handle_inputs()
+            self.callback(perf_counter(), toggle_pressed, self.pressed_input)
+            sleep(0.001)
 
     def _handle_inputs(self):
+        """Updates pressed_input and returns True if Start/Select was just pressed."""
+        toggle_pressed = False
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                return
+                return toggle_pressed
+
+            if self.button_map.is_toggle_button(event):
+                if event.type == pygame.CONTROLLERBUTTONDOWN:
+                    toggle_pressed = True
+                continue
 
             name, value, is_active = self.button_map.handle_event(event)
 
@@ -64,6 +65,7 @@ class JoystickHandler:
                     self.pressed_input.pop(name, None)
 
         pygame.event.pump()
+        return toggle_pressed
 
     def start(self):
         self.running = True

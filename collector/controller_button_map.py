@@ -45,6 +45,16 @@ class ControllerButtonMap(ABC):
             pygame.CONTROLLER_AXIS_RIGHTX: ("Right_Stick", "Horizontal"),
             pygame.CONTROLLER_AXIS_RIGHTY: ("Right_Stick", "Vertical"),
         }
+        # Start/Select control the recorder and are never used as labels
+        self.toggle_buttons = {
+            pygame.CONTROLLER_BUTTON_START: "Start",
+            pygame.CONTROLLER_BUTTON_BACK: "Select",
+        }
+
+    def is_toggle_button(self, event):
+        """True for Start/Select button events."""
+        is_button_event = event.type in (pygame.CONTROLLERBUTTONDOWN, pygame.CONTROLLERBUTTONUP)
+        return is_button_event and event.button in self.toggle_buttons
 
     def handle_event(self, event):
         handler, get_args = self._event_handlers.get(event.type, (None, None))
