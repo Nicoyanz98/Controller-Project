@@ -6,8 +6,15 @@ import threading
 from controller_button_map import create_map
 
 class JoystickHandler:
-    """Polls the controller on its own thread and reports its state through
-    callback(t, toggle_pressed, pressed_input) on every poll."""
+    """
+    Polls the controller on its own thread and reports its state through
+    callback(t, toggle, pressed, axes) on every poll:
+
+    Inputs handling:
+        toggle -> "start"/"back" when Start/Select was just pressed, None otherwise
+        pressed -> frozenset of the pressed labeled inputs (e.g. {"a", "ls_up"})
+        axes -> normalized axis values, in controller_button_map.AXIS_NAMES order
+    """
 
     def __init__(self, callback):
         self.callback = callback
@@ -20,8 +27,6 @@ class JoystickHandler:
         self._init_joystick()
 
         self.button_map = create_map(self.joystick.name.lower(), self.joystick)
-
-        self.pressed_input = {}
 
         self.joystick_thread = threading.Thread(target=self._worker, daemon=True)
 
@@ -40,32 +45,27 @@ class JoystickHandler:
 
     def _worker(self):
         while self.running:
-            toggle_pressed = self._handle_inputs()
-            self.callback(perf_counter(), toggle_pressed, self.pressed_input)
+            toggle = self._handle_inputs()
+            self.callback(perf_counter(), toggle, frozenset(self.button_map.pressed), self.button_map.axes())
             sleep(0.001)
 
     def _handle_inputs(self):
-        """Updates pressed_input and returns True if Start/Select was just pressed."""
-        toggle_pressed = False
+        """Updates the controller state and returns the Start/Select button just pressed, if any."""
+        toggle = None
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                return toggle_pressed
+                return toggle
 
-            if self.button_map.is_toggle_button(event):
+            toggle_name = self.button_map.toggle_name(event)
+            if toggle_name is not None:
                 if event.type == pygame.CONTROLLERBUTTONDOWN:
-                    toggle_pressed = True
+                    toggle = toggle_name
                 continue
 
-            name, value, is_active = self.button_map.handle_event(event)
-
-            if name is not None:
-                if is_active:
-                    self.pressed_input[name] = value
-                else:
-                    self.pressed_input.pop(name, None)
+            self.button_map.handle_event(event)
 
         pygame.event.pump()
-        return toggle_pressed
+        return toggle
 
     def start(self):
         self.running = True

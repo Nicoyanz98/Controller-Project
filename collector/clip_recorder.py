@@ -1,10 +1,13 @@
 import os
 import csv
+import json
 import queue
 import threading
 from bisect import bisect_right
 
 import cv2
+
+from controller_button_map import INPUT_GROUPS, LABEL_GROUPS, AXIS_NAMES, group_labels
 
 
 class ClipLogic:
@@ -17,9 +20,9 @@ class ClipLogic:
         None      -> nothing changed
 
     After a clip ends the recorder keeps going: a new clip begins at the previous
-    stop_t and waits continue_time seconds for a new input before stopping.
+    "stop_t" and waits "continue_time" seconds for a new input before stopping.
     Pressing Start/Select while recording ends the current clip and stops the recorder.
-    .recording tells whether a new clip follows a "save"/"discard".
+    "recording" tells whether a new clip follows a "save"/"discard".
     """
 
     def __init__(self, no_press_timeout=2.0, tail=0.5, continue_time=1.5, max_duration=10.0):
@@ -99,8 +102,12 @@ class ClipRecorder:
         self.stop_t = None
 
         self.frame_times = []
-        self.label_times = []
-        self.labels = []
+        # Controller state, stored only when it changes
+        self.sample_times = []
+        self.samples = []
+        self.poll_count = 0
+        self.first_poll_t = None
+        self.last_poll_t = None
 
         self.frame_queue = queue.Queue(maxsize=600)
         self.writer = cv2.VideoWriter(path, cv2.VideoWriter_fourcc(*fourcc), fps, size)
@@ -119,12 +126,17 @@ class ClipRecorder:
         except queue.Full:
             pass # Dropped frames show up as gaps in frame_times
 
-    def add_label(self, t, label):
-        """Registers the joystick label active from time t (only stored when it changes)."""
-        if self.labels and self.labels[-1] == label:
+    def add_sample(self, t, pressed, axes):
+        """Registers the controller state (pressed inputs and axis values) at time t."""
+        self.poll_count += 1
+        if self.first_poll_t is None:
+            self.first_poll_t = t
+        self.last_poll_t = t
+
+        if self.samples and self.samples[-1] == (pressed, axes):
             return
-        self.label_times.append(t)
-        self.labels.append(label)
+        self.sample_times.append(t)
+        self.samples.append((pressed, axes))
 
     def _writer_worker(self):
         while True:
@@ -145,22 +157,76 @@ class ClipRecorder:
         self.writer_thread.join()
         self.writer.release()
 
-    def save(self, path):
-        """Moves the video to path and writes its per-frame labels next to it."""
-        os.replace(self.path, path)
-        self.path = path
+    def save(self, stem, meta):
+        """Moves the video to <stem>.mp4 and writes next to it, with times since t0, 
+        and returns the completed meta:
+            - "stem"_frames.csv: per frame: group labels, 0/1 per input and axis values
+            - "stem"_events.csv: press/release of every input
+            - "stem".json: meta plus clip stats
+        """
+        os.replace(self.path, f"{stem}.mp4")
+        self.path = f"{stem}.mp4"
 
-        labels_path = os.path.splitext(path)[0] + "_labels.csv"
-        with open(labels_path, "w", newline="") as f:
+        names = list(INPUT_GROUPS)
+        with open(f"{stem}_frames.csv", "w", newline="") as f:
             writer = csv.writer(f)
-            writer.writerow(["frame", "t", "label"])
+            writer.writerow(["frame", "t"] + LABEL_GROUPS + names + [f"axis_{name}" for name in AXIS_NAMES])
             for frame_idx, frame_t in enumerate(self.frame_times):
-                writer.writerow([frame_idx, f"{frame_t - self.t0:.4f}", self._label_at(frame_t)])
+                pressed, axes = self._sample_at(frame_t)
+                labels = group_labels(pressed)
+                row = [frame_idx, f"{frame_t - self.t0:.4f}"]
+                row += [labels[group] for group in LABEL_GROUPS]
+                row += [int(name in pressed) for name in names]
+                row += [f"{value:.4f}" for value in axes]
+                writer.writerow(row)
 
-    def _label_at(self, t):
-        """Last label registered at or before t (the first one for earlier frames)."""
-        idx = max(bisect_right(self.label_times, t) - 1, 0)
-        return self.labels[idx]
+        events = self._events()
+        with open(f"{stem}_events.csv", "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["t", "input", "event"])
+            for t, name, event in events:
+                writer.writerow([f"{t:.4f}", name, event])
+
+        meta.update(self._stats(meta["fps_measured"], events))
+        with open(f"{stem}.json", "w") as f:
+            json.dump(meta, f, indent=2)
+        return meta
+
+    def _sample_at(self, t):
+        """Last controller state registered at or before t (the first one for earlier frames)."""
+        idx = max(bisect_right(self.sample_times, t) - 1, 0)
+        return self.samples[idx]
+
+    def _events(self):
+        """(t since t0, input, "press"/"release") for every change of the pressed inputs."""
+        events = []
+        previous = frozenset()
+        for t, (pressed, _) in zip(self.sample_times, self.samples):
+            for name in INPUT_GROUPS:
+                if name in pressed and name not in previous:
+                    events.append((t - self.t0, name, "press"))
+                elif name in previous and name not in pressed:
+                    events.append((t - self.t0, name, "release"))
+            previous = pressed
+        return events
+
+    def _stats(self, fps, events):
+        """Clip duration, frame gaps and pressed inputs, saved in the clip json."""
+        frame_times = self.frame_times
+        gaps = [b - a for a, b in zip(frame_times, frame_times[1:])]
+        nominal_gap = 1.0 / fps
+        poll_time = self.last_poll_t - self.first_poll_t if self.poll_count > 1 else 0
+        return {
+            "n_frames": len(frame_times),
+            "duration_s": round(frame_times[-1] - self.t0, 4),
+            "first_frame_t": round(frame_times[0] - self.t0, 4),
+            "max_frame_gap_s": round(max(gaps), 4) if gaps else None,
+            "frame_gaps_over_1.5x": sum(gap > 1.5 * nominal_gap for gap in gaps),
+            "poll_rate_hz": round(self.poll_count / poll_time, 1) if poll_time > 0 else None,
+            "n_press_events": sum(event == "press" for _, _, event in events),
+            "pressed_inputs": sorted({name for _, name, event in events if event == "press"}),
+            "label_groups": LABEL_GROUPS,
+        }
 
     def delete(self):
         try:
