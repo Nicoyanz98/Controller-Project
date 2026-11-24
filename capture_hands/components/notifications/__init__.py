@@ -1,2 +1,0 @@
-from components.notifications.notification_container import NotificationContainer
-from components.notifications.side_notification import SideNotification
